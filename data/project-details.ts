@@ -71,7 +71,7 @@ export const projectDetails: Record<string, ProjectDetail> = {
       { title: "추론을 완전히 로컬로", detail: "계획은 Qwen2.5, 화면 판단은 LLaVA가 맡고 두 모델 모두 Ollama에서 실행해 고객 화면과 작업 문맥이 외부 API로 나가지 않게 했습니다." },
       { title: "픽셀과 DOM을 결합", detail: "클릭 가능한 DOM 요소를 추출해 화면 위에 번호를 붙이는 Set-of-Mark를 사용했습니다. 모델은 전체 좌표를 추측하지 않고 제한된 후보 중 하나를 선택합니다." },
       { title: "실패를 다음 실행의 자산으로", detail: "학습 셀렉터 → Vision → 텍스트 매칭 → 좌표 클릭 순으로 폴백하고, 성공한 좌표에서 CSS 셀렉터를 역추적해 SQLite 신뢰도에 반영했습니다." },
-      { title: "GA4 검증에 적용", detail: "J.ESTINA·피자헛 등 실제 사이트 플로우를 탐색하며 dataLayer 이벤트를 수집하는 용도로 확장했고, 내부 실행 기준 33개 이벤트 중 80.5% 자동 검증 커버리지를 기록했습니다." },
+      { title: "GA4 검증에 적용", detail: "국내 주얼리 브랜드·글로벌 F&B 프랜차이즈 등 실제 사이트 플로우를 탐색하며 dataLayer 이벤트를 수집하는 용도로 확장했고, 내부 실행 기준 33개 이벤트 중 80.5% 자동 검증 커버리지를 기록했습니다." },
     ],
   },
   "text-to-sql": {
