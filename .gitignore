@@ -1,0 +1,26 @@
+# dependencies
+/node_modules
+
+# next.js
+/.next/
+/out/
+
+# local secrets
+.env*
+!.env.example
+
+# logs and system files
+*.log
+.DS_Store
+
+# typescript
+*.tsbuildinfo
+.originkit/
+
+# raw source captures kept at the repo root only.
+# Web-ready exports live in public/project-media and are committed.
+/*.mov
+/*.mp4
+/*.png
+/*.jpg
+/*.pdf
