@@ -1,0 +1,109 @@
+.main {
+  min-height: 100vh;
+  color: #17213b;
+  background:
+    radial-gradient(circle at 83% 0%, rgba(101, 87, 255, .055), transparent 25rem),
+    #ffffff;
+}
+
+.shell {
+  width: min(1400px, calc(100% - 64px));
+  margin-inline: auto;
+  padding: 24px 0 96px;
+}
+
+.header {
+  min-height: 124px;
+  display: flex;
+  justify-content: space-between;
+  gap: 48px;
+  align-items: flex-end;
+  padding: 2px 0 26px;
+  border-bottom: 1px solid #dfe3f0;
+}
+
+.kicker {
+  margin: 0 0 12px;
+  color: #6557ff;
+  font: 700 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .1em;
+}
+
+.header h1 {
+  margin: 0;
+  color: #101426;
+  font-size: clamp(38px, 4vw, 54px);
+  font-weight: 690;
+  line-height: 1;
+  letter-spacing: -.06em;
+}
+
+.description {
+  margin: 11px 0 0;
+  color: #6e7990;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.quickLinks {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 2px;
+}
+
+.quickLinks a {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 11px;
+  color: #65718a;
+  background: rgba(255, 255, 255, .74);
+  border: 1px solid #dfe3f0;
+  border-radius: 7px;
+  font: 650 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  transition: color .16s ease, border-color .16s ease, transform .16s ease;
+}
+
+.quickLinks a:hover {
+  color: #6557ff;
+  border-color: #c9c5ff;
+  transform: translateY(-1px);
+}
+
+.quickLinks a:focus-visible {
+  outline: 2px solid #6557ff;
+  outline-offset: 2px;
+}
+
+.archive { padding-top: 24px; }
+
+@media (max-width: 920px) {
+  .shell { width: min(100% - 40px, 760px); }
+}
+
+@media (max-width: 640px) {
+  .shell {
+    width: calc(100% - 28px);
+    padding-top: 18px;
+  }
+
+  .header {
+    min-height: 0;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 20px;
+    padding: 22px 0 24px;
+  }
+
+  .header h1 { font-size: 40px; }
+  .description { font-size: 13px; }
+  .quickLinks { width: 100%; }
+  .quickLinks a { flex: 1; }
+  .archive { padding-top: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quickLinks a { transition: none; }
+}
