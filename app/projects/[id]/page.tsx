@@ -147,13 +147,13 @@ export default async function ProjectDetailPage({ params }: Props) {
         {detail.decisions.length > 0 && <section className={`${styles.section} shell`}>
           <SectionTitle eyebrow="ENGINEERING DECISIONS" title="핵심 기술 판단" description="검토한 제약과 최종 선택" />
           <div className={styles.decisionContext}><span>검토한 문제</span><p>{detail.problem}</p></div>
-          <div className={styles.decisionList}>{detail.decisions.map((decision, index) => <details key={decision.title} open={index === 0}>
-            <summary><span>{String(index + 1).padStart(2, "0")}</span><h3>{decision.title}</h3><b>열기</b></summary>
+          <div className={styles.decisionList}>{detail.decisions.map((decision, index) => <article className={styles.decisionItem} key={decision.title}>
+            <header className={styles.decisionHeading}><span>{String(index + 1).padStart(2, "0")}</span><h3>{decision.title}</h3></header>
             <div className={styles.decisionBody}>
-              <div><p>최종 선택과 결과</p><strong>{decision.detail}</strong></div>
+              <div><p>선택과 결과</p><strong>{decision.detail}</strong></div>
               {challenge?.limitations[index] && <div><p>남은 한계</p><strong>{challenge.limitations[index]}</strong></div>}
             </div>
-          </details>)}</div>
+          </article>)}</div>
         </section>}
 
         <section className={`${styles.challengeResult} shell`}>
