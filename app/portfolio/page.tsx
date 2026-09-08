@@ -4,468 +4,178 @@ import Image from "next/image";
 import Link from "next/link";
 import { PrintToolbar } from "@/components/print-toolbar";
 import { projectDetails } from "@/data/project-details";
-import { projectCount } from "@/data/projects";
-import { amazonAdsAgent, bidMaster, byeoljari, type CaseStudy, type FlowLane } from "@/data/case-studies";
+import { projectNarratives } from "@/data/project-narratives";
+import { projectChallenges } from "@/data/project-challenges";
+import { projectCount, projects, type Project } from "@/data/projects";
 import styles from "./portfolio.module.css";
 
 export const metadata: Metadata = {
   title: "강연배 포트폴리오 — AI Full-stack Engineer",
-  description: "AI를 실제 운영 가능한 서비스로 완성하는 AI 풀스택 엔지니어 강연배의 포트폴리오",
+  description: "사용자 문제부터 배포와 운영까지 연결하는 AI 풀스택 엔지니어 강연배의 포트폴리오",
 };
 
-type CompactCase = {
-  id: "text-to-sql" | "meetsub";
-  type: string;
-  title: string;
-  copy: string;
-  role: string;
-  proof: string;
-  image: string;
-  stack: string;
-  href?: string;
-  linkLabel?: string;
-};
+const featuredIds = ["byeoljari", "meetsub", "exam-forge", "amazon-ads-agent", "bid-master"] as const;
+const personalIds = ["dubby", "sns-easyup", "cloudrun-monitor"] as const;
+const operationsIds = ["multilingual-cms", "snap-p", "voc-analyzer", "review-classifier", "did-cms"] as const;
+const appliedAiIds = ["local-browser-agent", "text-to-sql", "ga4-validator", "instagram-insight"] as const;
+const studentIds = ["student-echo", "student-spaceplace"] as const;
 
-const compactCases: CompactCase[] = [
-  {
-    id: "text-to-sql",
-    type: "APPLIED AI",
-    title: "BigQuery AI Analyst",
-    copy: "자연어 질문을 스키마에 맞는 SQL로 만들고, 안전성 검사·실행·오류 복구·인사이트 생성까지 연결했습니다.",
-    role: "AI · Backend · Data Product / 단독 개발",
-    proof: "SELECT/WITH only · 최대 2회 복구 · SSE 진행 상태",
-    image: "/project-media/text-to-sql.png",
-    stack: "Google ADK · LangGraph · BigQuery · RAG",
-  },
-  {
-    id: "meetsub",
-    type: "REAL-TIME PRODUCT",
-    title: "MeetSub",
-    copy: "설치가 제한된 회의 환경에서 브라우저 탭 오디오를 받아 전문 기술용어가 정확한 한·영 자막을 제공합니다.",
-    role: "Product · Full-stack · Cloud / 단독 개발",
-    proof: "무설치 브라우저 · 전문용어 교정 · 읽은 자막 안정화",
-    image: "/project-media/meetsub.webp",
-    stack: "Deepgram · Gemini · WebSocket · Cloud Run",
-    href: "https://meetsub-1088621830905.asia-northeast3.run.app/",
-    linkLabel: "LIVE SITE ↗",
-  },
-];
+function getProject(id: string) {
+  const project = projects.find((item) => item.id === id);
+  if (!project) throw new Error(`Unknown portfolio project: ${id}`);
+  return project;
+}
 
-const breadthCases = [
-  { title: "Dubby", type: "MOBILE PRODUCT", image: "/project-media/dubby.jpg", result: "1:1·그룹 채팅, 스토리, 투표와 서버 권위형 카드게임을 하나로 묶어 Google Play에 출시", stack: "Flutter · Firebase · Cloud Functions", href: "https://play.google.com/store/apps/details?id=com.dubby.ktalk", linkLabel: "GOOGLE PLAY ↗" },
-  { title: "Exam Forge", type: "DOMAIN PRODUCT", image: "/project-media/exam-forge.webp", result: "현직 강사의 불편에서 출발해 숫자·정답·풀이·TikZ 도형이 함께 바뀌고 A4로 바로 인쇄되는 시험지 PWA", stack: "Next.js · TikZ · KaTeX", href: "https://exam-forge-orcin.vercel.app/", linkLabel: "LIVE SITE ↗" },
-  { title: "Local Browser Agent", type: "LOCAL MULTIMODAL", image: "/project-media/local-browser-agent.png", result: "고객 화면을 외부 API로 보내지 않고 자연어 목표를 실행하는 로컬 자율 브라우저 Agent", stack: "Qwen2.5 · LLaVA · Playwright" },
-  { title: "Snap-p", type: "CREATIVE AUTOMATION", image: "/project-media/snap-p.webp", result: "상품 분석부터 아마존 리스팅 이미지 9장·카피·정책 검수까지 자동화", stack: "Gemini · Next.js · Prisma", href: "https://snap-p.com/", linkLabel: "LIVE SITE ↗" },
-];
-
-// Page order lives in one list so page numbers and the "NN / TOTAL" footer can
-// never drift apart when a sheet is added or reordered.
-const sheets: ((page: number) => React.ReactNode)[] = [
+const pages: ((page: number) => React.ReactNode)[] = [
   (page) => <CoverPage page={page} />,
   (page) => <ProfilePage page={page} />,
-  (page) => <CaseSystemPage study={amazonAdsAgent} page={page} />,
-  (page) => <CaseDecisionPage study={amazonAdsAgent} page={page} />,
-  (page) => <CaseOpsPage study={amazonAdsAgent} page={page} />,
-  (page) => <CaseSystemPage study={bidMaster} page={page} />,
-  (page) => <CaseDecisionPage study={bidMaster} page={page} />,
-  (page) => <CaseOpsPage study={bidMaster} page={page} />,
-  (page) => <CaseSystemPage study={byeoljari} page={page} />,
-  (page) => <CaseDecisionPage study={byeoljari} page={page} />,
-  (page) => <CaseOpsPage study={byeoljari} page={page} />,
-  (page) => <PairPage title="데이터 질문과 실시간 회의를 제품 흐름으로 연결합니다." subtitle="Applied AI · Realtime Product" items={compactCases} page={page} />,
-  (page) => <CustomerOperationsPage page={page} />,
-  (page) => <BreadthPage page={page} />,
+  (page) => <CasePage id={featuredIds[0]} page={page} />,
+  (page) => <CasePage id={featuredIds[1]} page={page} />,
+  (page) => <CasePage id={featuredIds[2]} page={page} />,
+  (page) => <ProjectGridPage page={page} label="PERSONAL PRODUCTS" kicker="SHIP · LEARN · OPERATE" title="개인 프로젝트를 통해 제품의 전 과정을 검증합니다." ids={personalIds} personal />,
+  (page) => <CasePage id={featuredIds[3]} page={page} />,
+  (page) => <CasePage id={featuredIds[4]} page={page} />,
+  (page) => <ProjectGridPage page={page} label="WORK PRODUCTS" kicker="CONTENT · COMMERCE · OPERATIONS" title="현업의 반복 업무를 운영 가능한 제품으로 전환합니다." ids={operationsIds} />,
+  (page) => <ProjectGridPage page={page} label="APPLIED AI" kicker="RIGHT-SIZED AI" title="문제에 맞는 크기의 AI와 자동화를 선택합니다." ids={appliedAiIds} />,
   (page) => <FoundationPage page={page} />,
 ];
 
-const TOTAL_PAGES = sheets.length;
+const TOTAL_PAGES = pages.length;
 
 export default function PortfolioPage() {
-  return (
-    <main className={styles.document}>
-      <PrintToolbar className={styles.toolbar} pdfHref="/Kang-Yeonbae-Portfolio.pdf" />
-      {sheets.map((sheet, index) => (
-        <Fragment key={index}>{sheet(index + 1)}</Fragment>
-      ))}
-    </main>
-  );
+  return <main className={styles.document}>
+    <PrintToolbar className={styles.toolbar} pdfHref="/Kang-Yeonbae-Portfolio.pdf" />
+    {pages.map((render, index) => <Fragment key={index}>{render(index + 1)}</Fragment>)}
+  </main>;
 }
 
 function CoverPage({ page }: { page: number }) {
-  return (
-    <section className={`${styles.page} ${styles.cover}`}>
-      <PageMark page={page} label="PORTFOLIO 2026" />
-      <div className={styles.coverTop}>
-        <span className={styles.logo}>KYB</span>
-        <div><strong>Kang YeonBae</strong><span>AI Full-stack Engineer</span></div>
-      </div>
-      <div className={styles.coverBody}>
-        <p className={styles.kicker}>APPLIED AI · BACKEND · PRODUCT</p>
-        <h1>복잡한 문제를<br /><em>운영되는 제품</em>으로.</h1>
-        <p>AI·백엔드·제품 경험을 연결해 아이디어를 실제 업무와 사용자가 계속 사용할 수 있는 서비스로 만듭니다.</p>
-      </div>
-      <div className={styles.coverProof}>
-        <div><span>OPERATIONS</span><strong>40%</strong><p>VOC/CS 생산성 개선</p></div>
-        <div><span>MODEL</span><strong>95%+</strong><p>리뷰 긍·부정 분류 정확도</p></div>
-        <div><span>DELIVERY</span><strong>8</strong><p>요구 분석부터 운영한 실무 제품</p></div>
-      </div>
-      <div className={styles.contactLine}>
-        <a href="mailto:dusqo7951@gmail.com">dusqo7951@gmail.com</a>
-        <a href="https://github.com/KangYeonbae">github.com/KangYeonbae</a>
-        <a href="https://linkedin.com/in/yeonbae-kang-973436334">LinkedIn</a>
-      </div>
-    </section>
-  );
+  return <section className={`${styles.page} ${styles.cover}`}>
+    <PageMark page={page} label="PORTFOLIO 2026" />
+    <div className={styles.coverIdentity}><span>KYB</span><div><strong>Kang YeonBae</strong><small>AI Full-stack Engineer</small></div></div>
+    <div className={styles.coverBody}>
+      <p className={styles.kicker}>PRODUCT · AI · BACKEND · CLOUD</p>
+      <h1>사용자 문제에서<br /><em>운영되는 제품</em>까지.</h1>
+      <p>기획·설계·개발·배포를 연결해 실제 사용자가 계속 쓸 수 있는 제품 완성.</p>
+    </div>
+    <div className={styles.coverProof}>
+      <article><span>PERSONAL</span><strong>개인 제품 우선</strong><p>결제·모바일·실시간·도메인 제품의 직접 운영</p></article>
+      <article><span>WORK</span><strong>8개 실무 프로젝트</strong><p>광고·커머스·VOC 업무의 제품화</p></article>
+      <article><span>RESULT</span><strong>40% · 95%+</strong><p>CS 생산성 개선 · 리뷰 분류 정확도</p></article>
+    </div>
+    <div className={styles.coverLinks}><a href="mailto:dusqo7951@gmail.com">dusqo7951@gmail.com</a><a href="https://github.com/KangYeonbae">github.com/KangYeonbae</a><a href="https://kangyeonbae.com">kangyeonbae.com</a></div>
+  </section>;
 }
 
 function ProfilePage({ page }: { page: number }) {
-  return (
-    <section className={styles.page}>
-      <PageMark page={page} label="PROFILE" />
-      <header className={styles.pageHeader}>
-        <p className={styles.kicker}>ENGINEERING PROFILE</p>
-        <h2>기능을 구현하는 데서 끝나지 않고,<br />배포 이후의 운영까지 책임집니다.</h2>
-      </header>
-      <div className={styles.profileGrid}>
-        <section>
-          <h3>Experience</h3>
-          <div className={styles.timeline}>
-            <article><time>2025.07 — NOW</time><h4>Hurdlers · AI Engineer</h4><p>광고·커머스·VOC를 위한 AI 제품과 업무 자동화</p></article>
-            <article><time>2025.03 — 2025.07</time><h4>Mooker · Backend Lead</h4><p>폐쇄망 DID CMS 백엔드와 미디어 아키텍처</p></article>
-            <article><time>2023 — 2024</time><h4>Codelab · SeSac</h4><p>클라우드·AICC·백엔드 집중 과정, 최우수 프로젝트</p></article>
-          </div>
-        </section>
-        <section>
-          <h3>How I build</h3>
-          <div className={styles.capabilityList}>
-            <article><span>01</span><div><h4>문제를 좁힙니다</h4><p>기술보다 먼저 반복 비용과 실패 경계, 실제 사용자를 확인합니다.</p></div></article>
-            <article><span>02</span><div><h4>맞는 크기의 기술을 고릅니다</h4><p>규칙·전통 ML·LLM·Agent를 정확도와 비용에 맞춰 조합합니다.</p></div></article>
-            <article><span>03</span><div><h4>운영 가능하게 배포합니다</h4><p>로그, 검증, 재시도, 권한과 사람이 개입할 지점을 함께 설계합니다.</p></div></article>
-          </div>
-        </section>
-      </div>
-      <div className={styles.projectMap}>
-        <h3>Core impact</h3>
-        <div><span>PROBLEM</span><strong>반복 광고 분석 · 대량 입찰 탐색 · 복잡한 유료 콘텐츠 경험</strong></div>
-        <div><span>MY ROLE</span><strong>문제 정의부터 AI·Backend·Frontend·Cloud 배포까지 직접 책임</strong></div>
-        <div><span>RESULT</span><strong>근거 검수 자동화 · 운영 중인 입찰 서비스 · 실결제 B2C 제품</strong></div>
-      </div>
-      <PageFooter page={page} />
-    </section>
-  );
-}
-
-function CaseSystemPage({ study, page }: { study: CaseStudy; page: number }) {
-  return (
-    <section className={styles.page}>
-      <PageMark page={page} label={study.type} />
-      <header className={`${styles.caseHeader} ${styles.caseHeaderWide}`}>
-        <div>
-          <p className={styles.kicker}>CASE STUDY {study.order} · PRODUCT &amp; SYSTEM</p>
-          <h2>{study.title}</h2>
-          <p>{study.thesis}</p>
-        </div>
-      </header>
-
-      <dl className={styles.caseMeta}>
-        <div><dt>PERIOD</dt><dd>{study.period}</dd></div>
-        <div><dt>ROLE</dt><dd>{study.role}</dd></div>
-        <div><dt>COLLABORATION</dt><dd>{study.collaboration}</dd></div>
-        <div><dt>STATUS</dt><dd>{study.status}</dd></div>
-      </dl>
-
-      <SectionLabel label="PRODUCT EVIDENCE" note={study.scaleSource} />
-      <div className={styles.scaleGrid}>
-        {study.scale.map((metric) => (
-          <div key={metric.label}>
-            <strong>{metric.value}</strong>
-            <b>{metric.label}</b>
-            {metric.note && <small>{metric.note}</small>}
-          </div>
-        ))}
-      </div>
-      <p className={styles.scaleNote}>{study.scaleNote}</p>
-
-      <SectionLabel label="ARCHITECTURE" note={study.architectureNote} />
-      <div className={styles.flowDiagram}>
-        {study.lanes.map((lane) => <FlowLaneBlock lane={lane} key={lane.name} />)}
-      </div>
-
-      <SectionLabel label="RESULT" />
-      <div className={styles.outcomeRow}>
-        {study.outcomes.map((outcome) => (
-          <article key={outcome.label}><span>{outcome.label}</span><p>{outcome.body}</p></article>
-        ))}
-      </div>
-
-      <div className={styles.caseBottom}>
-        <div className={styles.tags}>{study.stack.map((tag) => <span key={tag}>{tag}</span>)}</div>
-        {study.link && <a href={study.link.url}>{study.link.label} ↗</a>}
-      </div>
-      <PageFooter page={page} />
-    </section>
-  );
-}
-
-const nodeKindClass: Record<string, string> = {
-  llm: styles.nodeLlm,
-  check: styles.nodeCheck,
-  store: styles.nodeStore,
-  io: "",
-};
-
-function FlowNodeRow({ nodes }: { nodes: NonNullable<FlowLane["nodes"]> }) {
-  return (
-    <div className={styles.flowNodes}>
-      {nodes.map((node, index) => (
-        <div className={`${styles.flowNode} ${node.kind ? nodeKindClass[node.kind] : ""}`} key={node.title}>
-          <div>
-            {node.tag && <span className={styles.nodeTag}>{node.tag}</span>}
-            <strong>{node.title}</strong>
-            {node.detail && <small>{node.detail}</small>}
-          </div>
-          {index < nodes.length - 1 && <i aria-hidden="true">→</i>}
-        </div>
-      ))}
+  return <section className={styles.page}>
+    <PageMark page={page} label="PROFILE" />
+    <PageTitle kicker="ENGINEERING PROFILE" title={<>기능 구현 이후의<br />검증과 운영까지.</>} />
+    <div className={styles.profileColumns}>
+      <section><SectionLabel>EXPERIENCE</SectionLabel><div className={styles.timeline}>
+        <article><time>2025.07 — 현재</time><h3>Hurdlers · AI Engineer</h3><p>광고·커머스·VOC AI 제품 및 업무 자동화</p></article>
+        <article><time>2025.03 — 2025.07</time><h3>Mooker · Backend Lead</h3><p>폐쇄망 DID CMS 백엔드와 미디어 아키텍처</p></article>
+        <article><time>2023 — 2024</time><h3>Codelab · SeSac</h3><p>클라우드·AICC·백엔드 집중 과정, 최우수 프로젝트</p></article>
+      </div></section>
+      <section><SectionLabel>WORKING PRINCIPLES</SectionLabel><div className={styles.principles}>
+        <article><span>01</span><div><h3>실제 사용자 상황</h3><p>기술보다 먼저 반복 비용·실패 경계·성공 기준 확인</p></div></article>
+        <article><span>02</span><div><h3>맞는 크기의 기술</h3><p>규칙·전통 ML·LLM·Agent의 목적별 조합</p></div></article>
+        <article><span>03</span><div><h3>운영 가능한 완성</h3><p>로그·검증·재시도·권한·사람의 개입 지점 설계</p></div></article>
+      </div></section>
     </div>
-  );
-}
-
-function FlowLaneBlock({ lane }: { lane: FlowLane }) {
-  return (
-    <div className={styles.flowLane}>
-      <div className={styles.flowLaneHead}>
-        <strong>{lane.name}</strong>
-        {lane.caption && <span>{lane.caption}</span>}
-      </div>
-
-      {lane.nodes && <FlowNodeRow nodes={lane.nodes} />}
-
-      {lane.split && (
-        <div className={styles.flowSplit}>
-          <p className={styles.splitCondition}>{lane.split.condition}</p>
-          {lane.split.paths.map((path) => (
-            <div className={styles.splitPath} key={path.label}>
-              <div className={styles.splitLabel}>
-                <strong>{path.label}</strong>
-                {path.weight && <span>{path.weight}</span>}
-              </div>
-              <FlowNodeRow nodes={path.nodes} />
-            </div>
-          ))}
-        </div>
-      )}
-
-      {lane.loop && <p className={styles.flowLoop}>{lane.loop}</p>}
+    <div className={styles.profileRail}>
+      <article><span>문제 정의</span><p>현업 인터뷰와 실제 실패 상황의 요구사항 변환</p></article>
+      <article><span>담당 범위</span><p>Product · Frontend · Backend · AI · Cloud</p></article>
+      <article><span>제품 증거</span><p>실결제 · Google Play · 운영 서비스 · 언론 보도</p></article>
     </div>
-  );
+    <div className={styles.skillLine}><span>STACK</span><p>Python · TypeScript · Next.js · FastAPI · PostgreSQL · Gemini · Google ADK · GCP · AWS</p></div>
+    <PageFooter page={page} />
+  </section>;
 }
 
-function CaseDecisionPage({ study, page }: { study: CaseStudy; page: number }) {
-  return (
-    <section className={styles.page}>
-      <PageMark page={page} label={`${study.title.toUpperCase()} · DECISIONS`} />
-      <header className={`${styles.pageHeader} ${styles.pageHeaderTight}`}>
-        <p className={styles.kicker}>ENGINEERING DECISIONS</p>
-        <h2>무엇을 고르지 않았는지가<br />설계를 설명합니다.</h2>
-      </header>
-
-      <div className={styles.decisionStack} style={{ marginTop: "5mm" }}>
-        {study.decisions.map((decision) => (
-          <article className={styles.decisionCard} key={decision.index}>
-            <span>{decision.index}</span>
-            <div>
-              <h3>{decision.title}</h3>
-              <div className={styles.decisionRow}><b>검토</b><p>{decision.considered}</p></div>
-              <div className={styles.decisionRow}><b>문제</b><p>{decision.problem}</p></div>
-              <div className={styles.decisionRow}><b>결정</b><p>{decision.decision}</p></div>
-              {decision.kept && <div className={styles.decisionRow}><b>결과</b><p>{decision.kept}</p></div>}
-              {decision.debt && <div className={styles.decisionRow}><b>남은 부채</b><p className={styles.debtNote}>{decision.debt}</p></div>}
-              <p className={styles.decisionTakeaway}>{decision.takeaway}</p>
-            </div>
-          </article>
-        ))}
-      </div>
-
-      {study.codeQuote && (
-        <div className={styles.quoteBlock}>
-          <p>{study.codeQuote.code}</p>
-          <cite>{study.codeQuote.cite}</cite>
-        </div>
-      )}
-
-      <PageFooter page={page} />
-    </section>
-  );
+function CasePage({ id, page }: { id: string; page: number }) {
+  const project = getProject(id);
+  const narrative = projectNarratives[id];
+  const detail = projectDetails[id];
+  const challenge = projectChallenges[id];
+  return <section className={styles.page}>
+    <PageMark page={page} label={`${narrative.kind.toUpperCase()} · CASE STUDY`} />
+    <header className={styles.caseHeader}>
+      <div><p className={styles.kicker}>{project.eyebrow}</p><h2>{project.title}</h2><p>{project.summary}</p></div>
+      <dl><div><dt>기간</dt><dd>{project.period}</dd></div><div><dt>상태</dt><dd>{project.status}</dd></div><div><dt>팀</dt><dd>{narrative.team}</dd></div></dl>
+    </header>
+    <div className={styles.caseHero}>
+      {project.image && <figure><Image src={project.image} alt={`${project.title} 제품 화면`} fill sizes="105mm" loading="eager" /></figure>}
+      <div className={styles.productBrief}><article><span>사용자</span><p>{narrative.user}</p></article><article><span>기존 불편</span><p>{narrative.need}</p></article><article><span>성공 기준</span><p>{narrative.success}</p></article></div>
+    </div>
+    <SectionLabel>USER JOURNEY</SectionLabel>
+    <ol className={styles.journey}>{narrative.experiences.map((item, index) => <li key={item.title}><span>{String(index + 1).padStart(2, "0")}</span><strong>{item.title}</strong><p>{item.detail}</p></li>)}</ol>
+    <div className={styles.caseDetails}>
+      <section><SectionLabel>OWNERSHIP</SectionLabel><ul>{narrative.ownership.map((item) => <li key={item}>{item}</li>)}</ul></section>
+      <section><SectionLabel>KEY DECISIONS</SectionLabel>{detail.decisions.slice(0, 2).map((item) => <article className={styles.printDecision} key={item.title}><strong>{item.title}</strong><p>{item.detail}</p></article>)}</section>
+      <section><SectionLabel>{challenge.label.toUpperCase()}</SectionLabel><h3 className={styles.challengeTitle}>{challenge.title}</h3><dl className={styles.challengeList}><div><dt>상황</dt><dd>{challenge.situation}</dd></div><div><dt>해결</dt><dd>{challenge.resolution}</dd></div><div><dt>재발 방지</dt><dd>{challenge.prevention}</dd></div></dl></section>
+    </div>
+    <div className={styles.outcomeBar}><span>RESULT</span>{narrative.outcomes.map((item) => <p key={item.title}><strong>{item.title}</strong>{item.detail}</p>)}{project.url && <a href={project.url}>{actionLabel(project)} ↗</a>}</div>
+    <PageFooter page={page} />
+  </section>;
 }
 
-function CaseOpsPage({ study, page }: { study: CaseStudy; page: number }) {
-  const { troubleshooting: trouble, collaboration_detail: collab } = study;
-  return (
-    <section className={styles.page}>
-      <PageMark page={page} label={`${study.title.toUpperCase()} · OPERATIONS`} />
-      <header className={`${styles.pageHeader} ${styles.pageHeaderTight}`}>
-        <p className={styles.kicker}>TROUBLESHOOTING &amp; COLLABORATION</p>
-        <h2>무엇이 깨졌고,<br />누구와 무엇을 합의했는지.</h2>
-      </header>
-
-      <SectionLabel label="TROUBLESHOOTING" note="가장 오래 붙잡은 문제" />
-      <div className={styles.troubleGrid}>
-        <div className={styles.troubleMain}>
-          <h3>{trouble.headline}</h3>
-          <p className={styles.troubleEvidence}>{trouble.evidence}</p>
-          <div className={styles.incidentCard}>
-            <b>{trouble.incident.when}</b>
-            <div className={styles.incidentRow}><span>증상</span><p>{trouble.incident.report}</p></div>
-            <div className={styles.incidentRow}><span>대응</span><p>{trouble.incident.fix}</p></div>
-          </div>
-          <p className={styles.residueNote}>{trouble.residue}</p>
-        </div>
-
-        <div className={styles.troubleSide}>
-          <h3>{trouble.secondary.headline}</h3>
-          <p className={styles.contextNote}>{trouble.secondary.context}</p>
-          <div className={styles.errorTable}>
-            {trouble.secondary.rows.map((row) => (
-              <div key={row.label}><span>{row.label}</span><b>{row.value}</b></div>
-            ))}
-          </div>
-          <p className={styles.resolutionNote}>{trouble.secondary.resolution}</p>
-        </div>
-      </div>
-
-      <SectionLabel label={collab.label ?? "COLLABORATION"} note={collab.note ?? "요구를 수용 기준으로 번역하기"} />
-      <p className={styles.collabSetting}>{collab.setting}</p>
-      <div className={styles.collabTable}>
-        <div className={styles.collabHead}>
-          <span>{collab.headers?.[0] ?? "클라이언트가 말한 것"}</span>
-          <span>{collab.headers?.[1] ?? "내가 설계로 옮긴 것"}</span>
-        </div>
-        {collab.translations.map((row) => (
-          <div className={styles.collabRow} key={row.heard}>
-            <p className={styles.collabHeard}>{row.heard}</p>
-            <p className={styles.collabDelivered}>{row.delivered}</p>
-          </div>
-        ))}
-      </div>
-      <div className={styles.collabBoundary}>
-        <strong>{collab.boundary.title}</strong>
-        <p>{collab.boundary.body}</p>
-      </div>
-      <PageFooter page={page} />
-    </section>
-  );
+function actionLabel(project: Project) {
+  if (project.urlLabel === "Google Play") return "GOOGLE PLAY";
+  if (project.urlLabel === "Press") return "보도자료";
+  if (project.urlLabel === "GitHub") return "GITHUB";
+  return "서비스 사용하기";
 }
 
-function SectionLabel({ label, note }: { label: string; note?: string }) {
-  return <div className={styles.sectionLabel}><strong>{label}</strong><span /> {note && <small>{note}</small>}</div>;
+function secondaryLinkLabel(label: string) {
+  if (label === "Demo") return "영상 보기";
+  if (label === "Presentation") return "발표 자료";
+  return label;
 }
 
-function PairPage({ title, subtitle, items, page }: { title: string; subtitle: string; items: CompactCase[]; page: number }) {
-  return (
-    <section className={styles.page}>
-      <PageMark page={page} label={subtitle} />
-      <header className={styles.pageHeader}><p className={styles.kicker}>ROLE-SPECIFIC EVIDENCE</p><h2>{title}</h2></header>
-      <div className={styles.pairGrid}>
-        {items.map((item) => {
-          const detail = projectDetails[item.id];
-          return <article className={styles.pairCard} key={item.id}>
-            <header><span>{item.type}</span><h3>{item.title}</h3><p>{item.copy}</p></header>
-            <figure><Image src={item.image} alt={`${item.title} 화면`} fill sizes="85mm" loading="eager" /></figure>
-            <PrintArchitecture steps={detail.architecture} signals={detail.signals.slice(0, 3)} compact />
-            <div className={styles.pairMeta}><div><span>MY ROLE</span><strong>{item.role}</strong></div><div><span>RESULT</span><strong>{item.proof}</strong></div></div>
-            <div className={styles.pairStack}><span>{item.stack}</span>{item.href && <a href={item.href}>{item.linkLabel ?? "OPEN PRODUCT ↗"}</a>}</div>
-          </article>;
-        })}
-      </div>
-      <PageFooter page={page} />
-    </section>
-  );
+function ProjectGridPage({ page, label, kicker, title, ids, personal = false }: { page: number; label: string; kicker: string; title: string; ids: readonly string[]; personal?: boolean }) {
+  return <section className={styles.page}>
+    <PageMark page={page} label={label} />
+    <PageTitle kicker={kicker} title={title} />
+    <div className={`${styles.projectGrid} ${personal ? styles.personalGrid : ""}`}>
+      {ids.map((id) => <ProjectCard key={id} project={getProject(id)} personal={personal} />)}
+    </div>
+    <PageFooter page={page} />
+  </section>;
 }
 
-function CustomerOperationsPage({ page }: { page: number }) {
-  return (
-    <section className={styles.page}>
-      <PageMark page={page} label="CUSTOMER OPERATIONS AI" />
-      <header className={styles.pageHeader}>
-        <p className={styles.kicker}>ONE CLIENT · TWO OPERATIONAL PROBLEMS</p>
-        <h2>상담 정리와 리뷰 판독을 연결해<br />CS 운영 비용을 함께 줄였습니다.</h2>
-      </header>
-
-      <div className={styles.operationsSummary}>
-        <article><span>PROBLEM</span><p>같은 고객사에서 상담 기록과 상품 리뷰가 빠르게 쌓였고, 사람이 다시 읽어 정리하는 반복 업무와 범용 AI API 비용이 함께 증가했습니다.</p></article>
-        <article><span>MY ROLE</span><p>두 제품 모두 요구 분석, 기획, 설계, 개발, 패키징과 배포까지 전 과정을 단독으로 담당했습니다.</p></article>
-        <article><span>RESULT</span><p>상담 기록 정리 자동화로 CS 생산성을 약 40% 개선했고, 자체 학습 모델로 리뷰 긍·부정 분류 정확도 95% 이상을 달성했습니다.</p></article>
-      </div>
-
-      <div className={styles.operationsProducts}>
-        <article>
-          <header><span>01 · LLM OPERATIONS</span><h3>VOC Counseling Analyzer</h3><p>채널톡 상담을 수집해 LLM으로 요약·항목화하고 Google Sheets 리포트까지 자동 생성했습니다.</p></header>
-          <figure><Image src="/project-media/voc-collector.webp" alt="VOC 상담 분석기 실행 화면" fill sizes="85mm" loading="eager" /></figure>
-          <PrintArchitecture steps={["ChannelTalk", "Conversation extract", "LLM summary", "Structured fields", "Google Sheets"]} signals={["Desktop package", "Manual review", "Batch workflow"]} compact />
-          <footer><strong>성과 · VOC/CS 반복 업무 약 40% 절감</strong><span>OpenAI · ChannelTalk API · Streamlit · PyInstaller</span></footer>
-        </article>
-        <article>
-          <header><span>02 · RIGHT-SIZED MODEL</span><h3>Review Sentiment Classifier</h3><p>AI-Hub 데이터로 TF-IDF·Linear SVM 기반 경량 NLP 모델을 직접 학습하고, 리뷰 수집·판독·부정 리뷰 알림을 연결했습니다.</p></header>
-          <div className={styles.operationsMetric}><strong>95%+</strong><span>리뷰 긍·부정 분류 정확도</span><p>부정 리뷰 조기 탐지·알림 체계 구축</p></div>
-          <PrintArchitecture steps={["Cafe24 reviews", "Clean / Label", "TF-IDF", "Linear SVM", "Negative alert"]} signals={["Self-trained model", "No per-request LLM", "Flask API"]} compact />
-          <footer><strong>성과 · 반복 분류의 외부 API 의존과 비용 축소</strong><span>scikit-learn · TF-IDF · Linear SVM · Flask</span></footer>
-        </article>
-      </div>
-      <PageFooter page={page} />
-    </section>
-  );
-}
-
-function BreadthPage({ page }: { page: number }) {
-  return (
-    <section className={styles.page}>
-      <PageMark page={page} label="ADDITIONAL WORK" />
-      <header className={styles.pageHeader}><p className={styles.kicker}>PRODUCT BREADTH</p><h2>도메인이 달라도,<br />문제를 제품으로 끝까지 연결합니다.</h2></header>
-      <div className={styles.breadthGrid}>
-        {breadthCases.map((item) => <article key={item.title}>
-          <figure><Image src={item.image} alt={`${item.title} 화면`} fill sizes="85mm" loading="eager" /></figure>
-          <span>{item.type}</span><h3>{item.title}</h3><p>{item.result}</p><footer><small>{item.stack}</small>{item.href && <a href={item.href}>{item.linkLabel}</a>}</footer>
-        </article>)}
-      </div>
-      <PageFooter page={page} />
-    </section>
-  );
+function ProjectCard({ project, personal }: { project: Project; personal: boolean }) {
+  const narrative = projectNarratives[project.id];
+  const challenge = projectChallenges[project.id];
+  return <article className={styles.projectCard}>
+    {personal && project.image && <figure><Image src={project.image} alt={`${project.title} 화면`} fill sizes="55mm" loading="eager" /></figure>}
+    <div className={styles.cardBody}>
+      <header><span>{narrative.kind}</span><h3>{project.title}</h3><p>{project.summary}</p></header>
+      <dl><div><dt>사용자 문제</dt><dd>{narrative.need}</dd></div><div><dt>담당 범위</dt><dd>{narrative.ownership.slice(0, 2).join(" · ")}</dd></div><div><dt>{challenge.label}</dt><dd>{challenge.title} — {challenge.resolution}</dd></div><div><dt>결과</dt><dd>{narrative.outcomes.map((item) => item.title).join(" · ")}</dd></div></dl>
+      <footer><span>{project.tags.slice(0, 4).join(" · ")}</span>{project.url && <a href={project.url}>{actionLabel(project)} ↗</a>}{project.links?.[0] && <a href={project.links[0].url}>{secondaryLinkLabel(project.links[0].label)} ↗</a>}</footer>
+    </div>
+  </article>;
 }
 
 function FoundationPage({ page }: { page: number }) {
-  return (
-    <section className={`${styles.page} ${styles.foundation}`}>
-      <PageMark page={page} label="FOUNDATION & CONTACT" />
-      <header className={styles.pageHeader}><p className={styles.kicker}>STUDENT FOUNDATION</p><h2>팀 프로젝트에서 시작해,<br />운영 제품을 만드는 엔지니어로.</h2></header>
-      <div className={styles.foundationGrid}>
-        <FoundationCase title="Echo Recycle Hub" role="Architecture · Backend · ML / 기여도 50%" image="/project-media/echo-recycle-hub.webp" copy="폐기물 이미지 분류를 배출 방법·재활용 추천·챗봇·음성 상담까지 연결한 AICC 서비스." href="https://github.com/KangYeonbae/Project1_3" />
-        <FoundationCase title="SpacePlace.store" role="Frontend · API / 기여도 35%" image="/project-media/spaceplace-system.webp" copy="공간 검색과 예약을 서비스 경계로 나누고 API 계약과 통합 비용을 경험한 MSA 팀 프로젝트." href="https://github.com/orgs/Spaces-Place/repositories" />
-      </div>
-      <div className={styles.closing}>
-        <div><p className={styles.kicker}>LET&apos;S WORK TOGETHER</p><h3>문제를 발견하고,<br />작동하는 제품으로 만들겠습니다.</h3></div>
-        <div className={styles.closingLinks}>
-          <a href="mailto:dusqo7951@gmail.com"><span>EMAIL</span><strong>dusqo7951@gmail.com</strong></a>
-          <a href="https://github.com/KangYeonbae"><span>GITHUB</span><strong>github.com/KangYeonbae</strong></a>
-          <a href="https://linkedin.com/in/yeonbae-kang-973436334"><span>LINKEDIN</span><strong>yeonbae-kang-973436334</strong></a>
-          <Link href="/projects"><span>WEB ARCHIVE</span><strong>{projectCount} selected projects</strong></Link>
-        </div>
-      </div>
-      <PageFooter page={page} />
-    </section>
-  );
+  return <section className={`${styles.page} ${styles.foundation}`}>
+    <PageMark page={page} label="FOUNDATION & CONTACT" />
+    <PageTitle kicker="STUDENT FOUNDATION" title={<>팀 프로젝트에서 시작해,<br />운영 제품을 만드는 엔지니어로.</>} />
+    <div className={`${styles.projectGrid} ${styles.foundationGrid}`}>{studentIds.map((id) => <ProjectCard key={id} project={getProject(id)} personal />)}</div>
+    <div className={styles.closing}>
+      <div><p className={styles.kicker}>LET&apos;S WORK TOGETHER</p><h3>문제를 발견하고<br />작동하는 제품으로.</h3><p>{projectCount}개 프로젝트의 전체 기록은 웹 포트폴리오에서 확인할 수 있습니다.</p></div>
+      <div><a href="mailto:dusqo7951@gmail.com"><span>EMAIL</span><strong>dusqo7951@gmail.com</strong></a><a href="https://github.com/KangYeonbae"><span>GITHUB</span><strong>github.com/KangYeonbae</strong></a><a href="https://linkedin.com/in/yeonbae-kang-973436334"><span>LINKEDIN</span><strong>yeonbae-kang-973436334</strong></a><Link href="/projects"><span>WEB</span><strong>전체 프로젝트 보기</strong></Link></div>
+    </div>
+    <PageFooter page={page} />
+  </section>;
 }
 
-function FoundationCase({ title, role, image, copy, href }: { title: string; role: string; image: string; copy: string; href: string }) {
-  return <article><figure><Image src={image} alt={`${title} 대표 화면`} fill sizes="85mm" loading="eager" /></figure><h3>{title}</h3><p>{copy}</p><span>{role}</span><a href={href}>GITHUB ↗</a></article>;
+function PageTitle({ kicker, title }: { kicker: string; title: React.ReactNode }) {
+  return <header className={styles.pageTitle}><p className={styles.kicker}>{kicker}</p><h2>{title}</h2></header>;
 }
 
-function PrintArchitecture({ steps, signals, compact = false }: { steps: string[]; signals: string[]; compact?: boolean }) {
-  return <div className={`${styles.architecture} ${compact ? styles.architectureCompact : ""}`}>
-    <header><span>SYSTEM FLOW</span><span>INPUT → RESULT</span></header>
-    <div className={styles.architectureSteps}>{steps.map((step, index) => <div className={styles.architectureStep} key={step}><div><small>{String(index + 1).padStart(2, "0")}</small><strong>{step}</strong></div>{index < steps.length - 1 && <i>→</i>}</div>)}</div>
-    <footer>{signals.map((signal) => <span key={signal}>{signal}</span>)}</footer>
-  </div>;
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return <h3 className={styles.sectionLabel}>{children}</h3>;
 }
 
 function PageMark({ page, label }: { page: number; label: string }) {
