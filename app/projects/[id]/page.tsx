@@ -7,8 +7,9 @@ import { ArrowRight, ArrowUpRight } from "@/components/icons";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { categoryLabels, projects as staticProjects } from "@/data/projects";
-import { projectDetails } from "@/data/project-details";
-import { projectNarratives, type NarrativeItem } from "@/data/project-narratives";
+import { projectDetails, type ProjectDetail } from "@/data/project-details";
+import { projectNarratives, type NarrativeItem, type ProjectNarrative } from "@/data/project-narratives";
+import { projectChallenges } from "@/data/project-challenges";
 import { listProjects } from "@/lib/content-store";
 import styles from "./project-detail.module.css";
 
@@ -39,14 +40,40 @@ function CompactCards({ items }: { items: NarrativeItem[] }) {
   return <div className={styles.compactGrid}>{items.map((item) => <article key={item.title}><h3>{item.title}</h3><p>{item.detail}</p></article>)}</div>;
 }
 
+function ExperienceFlow({ items }: { items: NarrativeItem[] }) {
+  return <ol className={styles.experienceFlow}>{items.map((item, index) => <li key={item.title}><span>STEP {String(index + 1).padStart(2, "0")}</span><h3>{item.title}</h3><p>{item.detail}</p></li>)}</ol>;
+}
+
+function actionLabel(label?: string) {
+  const labels: Record<string, string> = { "Live site": "서비스 사용하기", Demo: "영상 보기", Press: "보도자료", Presentation: "발표 자료" };
+  return labels[label ?? ""] ?? label ?? "서비스 사용하기";
+}
+
+function fallbackNarrative(project: NonNullable<Awaited<ReturnType<typeof findProject>>>): ProjectNarrative {
+  return {
+    kind: `${categoryLabels[project.category]} 프로젝트`,
+    team: project.role,
+    user: "프로젝트의 핵심 기능을 사용하는 사용자",
+    need: project.summary,
+    success: "핵심 사용자 흐름의 안정적인 완성",
+    experiences: [{ title: "핵심 기능", detail: project.summary }],
+    ownership: [project.role],
+    outcomes: [{ title: project.status ?? "완료", detail: "상세 공개 범위 정리 중" }],
+  };
+}
+
+function fallbackDetail(project: NonNullable<Awaited<ReturnType<typeof findProject>>>): ProjectDetail {
+  return { problem: project.summary, architecture: ["User input", "Product", "Result"], signals: project.tags.slice(0, 4), decisions: [] };
+}
+
 export default async function ProjectDetailPage({ params }: Props) {
   const { id } = await params;
   const project = await findProject(id);
   if (!project) notFound();
 
-  const detail = projectDetails[id];
-  const narrative = projectNarratives[id];
-  if (!detail || !narrative) notFound();
+  const detail = projectDetails[id] ?? fallbackDetail(project);
+  const narrative = projectNarratives[id] ?? fallbackNarrative(project);
+  const challenge = projectChallenges[id];
 
   const relatedNote = relatedNotes[id];
   const currentIndex = staticProjects.findIndex((item) => item.id === id);
@@ -63,9 +90,10 @@ export default async function ProjectDetailPage({ params }: Props) {
               <p className={styles.kicker}>{narrative.kind} · {categoryLabels[project.category]}</p>
               <h1>{project.title}</h1>
               <p className={styles.summary}>{project.summary}</p>
-              {(project.url || project.links?.length) && <div className={styles.actions}>
-                {project.url && <a className={styles.primaryAction} href={project.url} target="_blank" rel="noreferrer">{project.urlLabel ?? "서비스 사용하기"} <ArrowUpRight /></a>}
-                {project.links?.map((link) => <a href={link.url} target="_blank" rel="noreferrer" key={link.url}>{link.label} <ArrowUpRight /></a>)}
+              {(project.url || project.video || project.links?.length) && <div className={styles.actions}>
+                {project.url && <a className={styles.primaryAction} href={project.url} target="_blank" rel="noreferrer">{actionLabel(project.urlLabel)} <ArrowUpRight /></a>}
+                {project.video && <a href={project.video} target="_blank" rel="noreferrer">영상 보기 <ArrowUpRight /></a>}
+                {project.links?.map((link) => <a href={link.url} target="_blank" rel="noreferrer" key={link.url}>{actionLabel(link.label)} <ArrowUpRight /></a>)}
               </div>}
             </div>
             <dl className={styles.meta}>
@@ -82,7 +110,10 @@ export default async function ProjectDetailPage({ params }: Props) {
           </figure> : project.image ? <figure className={`${styles.productMedia} ${project.imageAspect === "portrait" ? styles.portrait : ""}`}>
             <div className={styles.imageFrame}><Image src={project.image} alt={`${project.title} 대표 제품 화면`} fill priority sizes="(max-width: 760px) 92vw, 860px" className={project.imageFit === "contain" ? styles.contain : undefined} /></div>
             <figcaption><span>대표 제품 화면</span>{project.title}</figcaption>
-          </figure> : null}
+          </figure> : <figure className={`${styles.productMedia} ${styles.systemPreview}`}>
+            <figcaption><span>공개 시스템 뷰</span>제품 화면 비공개 또는 기록 없음</figcaption>
+            <div><p>{project.title}</p>{detail.architecture.map((step, index) => <span key={step}><small>{String(index + 1).padStart(2, "0")}</small>{step}</span>)}</div>
+          </figure>}
         </section>
 
         <section className={`${styles.brief} shell`}>
@@ -90,14 +121,14 @@ export default async function ProjectDetailPage({ params }: Props) {
           <div className={styles.briefRail}>
             <article><span>사용자</span><p>{narrative.user}</p></article>
             <article><span>기존 불편</span><p>{narrative.need}</p></article>
-            <article><span>제품 필요성</span><p>{detail.problem}</p></article>
+            <article><span>해결 방향</span><p>{project.summary}</p></article>
             <article className={styles.success}><span>성공 기준</span><p>{narrative.success}</p></article>
           </div>
         </section>
 
         <section className={`${styles.section} shell`}>
           <SectionTitle eyebrow="PRODUCT EXPERIENCE" title="제품이 제공하는 경험" description="사용자 입력부터 실제 결과까지의 핵심 기능" />
-          <CompactCards items={narrative.experiences} />
+          <ExperienceFlow items={narrative.experiences} />
         </section>
 
         <section className={`${styles.splitSection} shell`}>
@@ -113,19 +144,22 @@ export default async function ProjectDetailPage({ params }: Props) {
           </div>
         </section>
 
-        <section className={`${styles.section} shell`}>
+        {detail.decisions.length > 0 && <section className={`${styles.section} shell`}>
           <SectionTitle eyebrow="ENGINEERING DECISIONS" title="핵심 기술 판단" description="검토한 제약과 최종 선택" />
-          <div className={styles.decisionList}>{detail.decisions.map((decision, index) => <article key={decision.title}>
-            <span>{String(index + 1).padStart(2, "0")}</span>
-            <div><p>판단</p><h3>{decision.title}</h3></div>
-            <div><p>선택과 결과</p><strong>{decision.detail}</strong></div>
-          </article>)}</div>
-        </section>
+          <div className={styles.decisionContext}><span>검토한 문제</span><p>{detail.problem}</p></div>
+          <div className={styles.decisionList}>{detail.decisions.map((decision, index) => <details key={decision.title} open={index === 0}>
+            <summary><span>{String(index + 1).padStart(2, "0")}</span><h3>{decision.title}</h3><b>열기</b></summary>
+            <div className={styles.decisionBody}>
+              <div><p>최종 선택과 결과</p><strong>{decision.detail}</strong></div>
+              {challenge?.limitations[index] && <div><p>남은 한계</p><strong>{challenge.limitations[index]}</strong></div>}
+            </div>
+          </details>)}</div>
+        </section>}
 
         <section className={`${styles.challengeResult} shell`}>
           <div className={styles.challenge}>
             <SectionTitle eyebrow="HARDEST PROBLEM" title="가장 어려웠던 문제" />
-            {narrative.featured ? <article><h3>{narrative.featured.challenge.title}</h3><p>{narrative.featured.challenge.detail}</p></article> : <article><h3>{detail.decisions[0]?.title ?? "핵심 제약 해결"}</h3><p>{narrative.need}</p><small>{detail.decisions[0]?.detail}</small></article>}
+            {challenge ? <article><span>{challenge.label}</span><h3>{challenge.title}</h3><dl><div><dt>상황</dt><dd>{challenge.situation}</dd></div><div><dt>해결</dt><dd>{challenge.resolution}</dd></div><div><dt>재발 방지</dt><dd>{challenge.prevention}</dd></div></dl></article> : <article><span>상세 준비 중</span><h3>공개 가능한 문제 해결 기록 정리 중</h3><p>{narrative.need}</p></article>}
           </div>
           <div className={styles.results}><SectionTitle eyebrow="OUTCOME" title="결과와 영향" /><CompactCards items={narrative.outcomes} /></div>
         </section>
