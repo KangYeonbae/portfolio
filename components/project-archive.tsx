@@ -25,13 +25,20 @@ const externalLabels: Record<NonNullable<Project["urlLabel"]>, string> = {
   Notion: "문서 보기",
 };
 
+const allProjectsCategoryPriority: Record<ProjectCategory, number> = {
+  product: 0,
+  work: 1,
+  lab: 2,
+  student: 3,
+};
+
 export function ProjectArchive({ projects, compact = false }: { projects: Project[]; compact?: boolean }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
 
   const visible = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    return projects.filter((project) => {
+    const filtered = projects.filter((project) => {
       if (filter !== "all" && project.category !== filter) return false;
       if (!normalized) return true;
       return [project.title, project.eyebrow, project.summary, project.role, ...project.tags]
@@ -39,6 +46,14 @@ export function ProjectArchive({ projects, compact = false }: { projects: Projec
         .toLowerCase()
         .includes(normalized);
     });
+
+    if (filter === "all") {
+      filtered.sort(
+        (a, b) => allProjectsCategoryPriority[a.category] - allProjectsCategoryPriority[b.category],
+      );
+    }
+
+    return filtered;
   }, [filter, projects, query]);
 
   const filters: Filter[] = ["all", "work", "product", "lab", "student"];
@@ -93,7 +108,7 @@ export function ProjectArchive({ projects, compact = false }: { projects: Projec
       <section className={styles.results} aria-live="polite">
         <div className={styles.resultsHeader}>
           <p><strong>{visible.length}</strong>개의 프로젝트</p>
-          <span>최근 작업순</span>
+          <span>{filter === "all" ? "개인 제품 우선" : "최근 작업순"}</span>
         </div>
 
         <div className={styles.projectGrid}>
