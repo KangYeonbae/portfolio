@@ -23,6 +23,7 @@ const externalLabels: Record<NonNullable<Project["urlLabel"]>, string> = {
   Press: "보도자료",
   GitHub: "GitHub",
   Notion: "문서 보기",
+  "Google Play": "Google Play",
 };
 
 const allProjectsCategoryPriority: Record<ProjectCategory, number> = {

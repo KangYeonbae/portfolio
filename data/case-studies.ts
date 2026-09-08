@@ -119,10 +119,10 @@ export const amazonAdsAgent: CaseStudy = {
       name: "GENERATION",
       caption: "Python 직선 오케스트레이션 · ADK는 LLM 호출 단위로만",
       nodes: [
-        { title: "Worker", tag: "LLM", detail: "섹션 생성 610줄", kind: "llm" },
-        { title: "fact_guard", tag: "Python", detail: "숫자 대조 387줄", kind: "check" },
-        { title: "style_editor", tag: "LLM", detail: "문체 교정 321줄", kind: "llm" },
-        { title: "report_qa_agent", tag: "Python", detail: "최종 게이트 816줄", kind: "check" },
+        { title: "Worker", tag: "LLM", detail: "근거 기반 섹션 초안", kind: "llm" },
+        { title: "fact_guard", tag: "Python", detail: "원본 금액·캠페인명 대조", kind: "check" },
+        { title: "style_editor", tag: "LLM", detail: "광고 문체와 표현 정돈", kind: "llm" },
+        { title: "report_qa_agent", tag: "Python", detail: "출고 전 위반 차단", kind: "check" },
       ],
       loop: "fact_guard 위반 → 재프롬프트 · QA 위반 섹션만 재생성(최대 3회)",
     },
@@ -181,7 +181,7 @@ export const amazonAdsAgent: CaseStudy = {
 
   troubleshooting: {
     headline: "LLM 환각 — 숫자와 용어의 조작",
-    evidence: "검증·교정 전용 코드 1,524줄. v3 전체 7,444줄의 20%가 생성이 아니라 생성물 검증에 쓰입니다.",
+    evidence: "실제 전환이 있는데도 ‘직접 매출 없음’으로 서술된 고객 피드백 P0를 계기로, 생성 결과를 원본 데이터와 대조하는 출고 차단선을 세웠습니다.",
     incident: {
       when: "2026-06-04 · 고객 피드백 P0",
       report: "Cross-sell 섹션에 direct conversion이 실제로 존재했는데 “직접 매출 없음”으로 서술 — 실제 성과와 정반대의 문장이 나갔습니다.",
@@ -419,14 +419,14 @@ export const byeoljari: CaseStudy = {
   link: { label: "byeoljari.com", url: "https://byeoljari.com" },
 
   scale: [
-    { value: "46,249줄", label: "코드 규모", note: "260개 파일 · TypeScript + Python" },
-    { value: "459 커밋", label: "개발 기간", note: "2026.03.10 — 08.10 · 5개월 단독" },
-    { value: "36개", label: "API 라우트", note: "결제 · 리딩 · 결과 · 관리자" },
+    { value: "실결제 운영", label: "B2C 서비스", note: "사업자 등록 · PG 가맹점 계약" },
+    { value: "기획 → 운영", label: "전 과정 단독 책임", note: "제품 · 디자인 · 개발 · 배포" },
+    { value: "무료 → 유료", label: "전환 흐름", note: "기본 결과 후 AI 상세 리딩" },
     { value: "11종", label: "유료·무료 서비스", note: "사주 · 점성술 · 타로 · 궁합 · 일일운세" },
-    { value: "CRITICAL 7 / HIGH 10", label: "감사 후 해소", note: "3~4월 코드·보안 감사" },
-    { value: "AES-256-GCM", label: "개인정보 암호화", note: "생년월일시 · Supabase RLS" },
+    { value: "24개", label: "핵심 사용자 시나리오", note: "결제 · 결과 전달 · 환불 검증" },
+    { value: "유입 → 결제", label: "직접 운영한 퍼널", note: "SEO · Meta 광고 · PG" },
   ],
-  scaleSource: "레포 실측 · 2026.08.10 기준",
+  scaleSource: "실서비스 운영 · 사용자 시나리오 검증",
   architectureNote: "결정론적 계산 / AI 해석 분리",
   codeQuote: {
     code: "성공 기준 : 결제 → 사용자가 제대로된 리딩 결과를 받는다. 환불은 fallback이 아니라 실패.",
@@ -513,7 +513,7 @@ export const byeoljari: CaseStudy = {
   troubleshooting: {
     headline: "환불 계산이 금융 손실로 이어질 수 있었던 문제",
     evidence:
-      "외부 코드 리뷰에서 P0 2건·P1 2건·P2 1건을 지적받았고, 코드로 직접 검증하는 과정에서 지적되지 않은 P3·P4를 추가로 찾았습니다. 결제 코드라 한 커밋에 여러 변경을 섞지 않고 13개 커밋으로 나눠 순차 수정했습니다.",
+      "사용자 시나리오 검증 중 결제 식별자와 사용자의 연결 누락을 발견해, 결제 SDK에 식별자를 심고 서버에서 다시 대조·차단하도록 바꿨습니다.",
     incident: {
       when: "2026-05-21 · P0-A",
       report:
@@ -522,11 +522,11 @@ export const byeoljari: CaseStudy = {
         "charge-and-use 결제를 충전형과 구분해 기록하고, FIFO 계산이 use 트랜잭션의 chargePaymentId까지 보도록 고쳤습니다. 어느 결제가 이미 소진됐는지를 계산이 알 수 있게 만든 것이 핵심입니다.",
     },
     residue:
-      "각 단계마다 grep과 tsc로 검증하며 앞뒤 플로우를 확인한 뒤 다음 커밋으로 넘어갔습니다. 결제 로직에서는 속도보다 순서를 지키는 편이 결과적으로 빨랐습니다.",
+      "기존 결제와 데이터 구조를 깨지 않으면서 신규 결제부터 식별자 검증을 적용했습니다. 결제 로직에서는 빠른 수정 자체보다 기존 주문의 호환성과 결과 전달 순서를 지키는 것이 중요했습니다.",
     secondary: {
       headline: "결제 · 리딩 무결성 방어",
       context:
-        "3~4월에 50개 시나리오 코드 리뷰, 100개 사용자 시나리오 검증, 보안·UX 감사 18건, 65개 파일 딥 감사를 순차로 진행했습니다. 아래는 그 과정에서 닫은 대표 경로입니다.",
+        "결제 성공 화면이 아니라 사용자가 결과를 받는 순간까지를 하나의 시나리오로 보고, 결제·토큰·리딩·환불 경계를 반복 검증했습니다. 아래는 그 과정에서 닫은 대표 실패 경로입니다.",
       rows: [
         { label: "결제 금액 클라이언트 변조", value: "서버 대조" },
         { label: "reading_token 이중 사용", value: "원자적 UPDATE" },
@@ -563,8 +563,8 @@ export const byeoljari: CaseStudy = {
       },
     ],
     boundary: {
-      title: "판단 근거를 코드에 남겼습니다",
-      body: "리뷰에서 배운 것을 CLAUDE.md의 개발 원칙으로 정리해 두었습니다. “try-catch를 추가하는 것이 아니라 에러가 날 수 있는 원인 자체를 해결한다”, “문제가 생기면 어떻게 처리할지가 아니라 왜 발생했는지를 먼저 따진다” — 다음 작업자가 같은 실수를 반복하지 않도록 남긴 기준입니다.",
+      title: "판단 근거를 운영 원칙으로 남겼습니다",
+      body: "리뷰에서 배운 것을 개발 원칙으로 정리했습니다. 증상을 감추는 예외 처리보다 원인을 제거하고, 문제가 생긴 뒤의 처리보다 발생 조건을 먼저 검증한다는 기준입니다. 다음 변경에서도 같은 실패를 반복하지 않기 위한 제품 운영 규칙입니다.",
     },
   },
 };

@@ -11,7 +11,7 @@ export type Project = {
   tags: string[];
   status?: "운영" | "진행" | "완료" | "프로토타입";
   url?: string;
-  urlLabel?: "Live site" | "Demo" | "Press" | "GitHub" | "Notion";
+  urlLabel?: "Live site" | "Demo" | "Press" | "GitHub" | "Notion" | "Google Play";
   links?: { label: string; url: string }[];
   image?: string;
   imageFit?: "cover" | "contain";
@@ -219,6 +219,8 @@ export const projects: Project[] = [
     tags: ["Flutter", "Firebase", "Firestore", "Cloud Functions", "FCM"],
     status: "진행",
     image: "/project-media/dubby.jpg",
+    url: "https://play.google.com/store/apps/details?id=com.dubby.ktalk",
+    urlLabel: "Google Play",
   },
   {
     id: "meetsub",
@@ -247,7 +249,10 @@ export const projects: Project[] = [
     role: "Product · Domain modeling · Full-stack / 단독 개발",
     tags: ["Next.js", "TikZ", "KaTeX", "PostgreSQL", "PWA"],
     status: "진행",
-    image: "/project-media/exam-forge.svg",
+    image: "/project-media/exam-forge.webp",
+    imageFit: "contain",
+    url: "https://exam-forge-orcin.vercel.app/",
+    urlLabel: "Live site",
   },
   {
     id: "sns-easyup",

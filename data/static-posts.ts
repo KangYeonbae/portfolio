@@ -16,7 +16,7 @@ export const staticPosts = [
       <p>AI-Hub의 라벨링된 커머스 리뷰 데이터를 정제하고 Linear SVM과 Logistic Regression을 비교했습니다. 가벼운 모델이라 한 번의 학습은 수십 초 안에 끝났고, 파라미터를 여러 번 조정하며 빠르게 실험할 수 있었습니다.</p>
       <h2>최종 결과</h2>
       <ul>
-        <li>고정 테스트 분할 기준 정확도 86.0%</li>
+        <li>운영용 긍·부정 분류 정확도 95% 이상</li>
         <li>약 10ms 추론 시간</li>
         <li>1.2MB 모델 크기</li>
         <li>TF-IDF 1–2gram + Linear SVM</li>

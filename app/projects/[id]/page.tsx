@@ -30,7 +30,7 @@ const relatedNotes: Record<string, { href: string; title: string }> = {
  * Deep case-study layers for the three flagship projects.
  *
  * Progressive disclosure: IMPACT and ARCHITECTURE stay open so a recruiter can
- * scan measured numbers and the system shape in well under a minute. DECISIONS
+ * scan product evidence and the system shape in well under a minute. DECISIONS
  * and OPERATIONS keep their headline and conclusion visible but fold the
  * reasoning, so an engineer can open exactly the part they want to interrogate.
  */
@@ -43,11 +43,11 @@ function DeepCaseSections({ study }: { study: CaseStudy }) {
       <section className="project-detail-section shell">
         <div className="detail-section-label"><span>02</span>IMPACT</div>
         <div className="detail-section-content">
-          <h2>규모와 결과</h2>
+          <h2>제품이 만든 변화</h2>
           <p className="deep-thesis">{study.thesis}</p>
 
           <div className="deep-scale">
-            <div className="deep-scale-head"><span>SCALE</span><small>{study.scaleSource}</small></div>
+            <div className="deep-scale-head"><span>PRODUCT EVIDENCE</span><small>{study.scaleSource}</small></div>
             <div className="deep-scale-grid">
               {study.scale.map((metric) => (
                 <div key={metric.label}>
@@ -268,12 +268,12 @@ export default async function ProjectDetailPage({ params }: Props) {
         ) : detail ? (
           <>
             <section className="project-detail-section shell">
-              <div className="detail-section-label"><span>02</span>ARCHITECTURE</div>
-              <div className="detail-section-content"><h2>시스템 구조</h2><p>핵심 요청이 데이터와 서비스 경계를 지나 결과가 되기까지의 흐름입니다.</p><div className="project-detail-architecture"><ArchitectureDiagram steps={detail.architecture} signals={detail.signals} /></div></div>
+              <div className="detail-section-label"><span>02</span>PRODUCT FLOW</div>
+              <div className="detail-section-content"><h2>사용자 문제를 푸는 흐름</h2><p>사용자의 입력이 제품의 핵심 경계를 지나 실제 결과로 이어지는 과정입니다.</p><div className="project-detail-architecture"><ArchitectureDiagram steps={detail.architecture} signals={detail.signals} /></div></div>
             </section>
             <section className="project-detail-section shell">
               <div className="detail-section-label"><span>03</span>DECISIONS</div>
-              <div className="detail-section-content"><h2>Engineering decisions</h2><div className="decision-list">{detail.decisions.map((decision, index) => <article key={decision.title}><span>{String(index + 1).padStart(2, "0")}</span><div><h3>{decision.title}</h3><p>{decision.detail}</p></div></article>)}</div></div>
+              <div className="detail-section-content"><h2>제품을 만든 핵심 판단</h2><div className="decision-list">{detail.decisions.map((decision, index) => <article key={decision.title}><span>{String(index + 1).padStart(2, "0")}</span><div><h3>{decision.title}</h3><p>{decision.detail}</p></div></article>)}</div></div>
             </section>
           </>
         ) : null}

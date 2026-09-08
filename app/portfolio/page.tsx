@@ -9,8 +9,8 @@ import { amazonAdsAgent, bidMaster, byeoljari, type CaseStudy, type FlowLane } f
 import styles from "./portfolio.module.css";
 
 export const metadata: Metadata = {
-  title: "강연배 포트폴리오 — Software Engineer",
-  description: "Applied AI, Backend, Product Engineering 포트폴리오",
+  title: "강연배 포트폴리오 — AI Full-stack Engineer",
+  description: "AI를 실제 운영 가능한 서비스로 완성하는 AI 풀스택 엔지니어 강연배의 포트폴리오",
 };
 
 type CompactCase = {
@@ -22,6 +22,8 @@ type CompactCase = {
   proof: string;
   image: string;
   stack: string;
+  href?: string;
+  linkLabel?: string;
 };
 
 const compactCases: CompactCase[] = [
@@ -39,19 +41,21 @@ const compactCases: CompactCase[] = [
     id: "meetsub",
     type: "REAL-TIME PRODUCT",
     title: "MeetSub",
-    copy: "실시간 STT와 번역 자막, 회의 기록, 요약 리포트와 PDF 내보내기를 한 세션으로 연결했습니다.",
+    copy: "설치가 제한된 회의 환경에서 브라우저 탭 오디오를 받아 전문 기술용어가 정확한 한·영 자막을 제공합니다.",
     role: "Product · Full-stack · Cloud / 단독 개발",
-    proof: "Realtime stream · Session recovery · Cloud Run scaling",
+    proof: "무설치 브라우저 · 전문용어 교정 · 읽은 자막 안정화",
     image: "/project-media/meetsub.webp",
     stack: "Deepgram · Gemini · WebSocket · Cloud Run",
+    href: "https://meetsub-1088621830905.asia-northeast3.run.app/",
+    linkLabel: "LIVE SITE ↗",
   },
 ];
 
 const breadthCases = [
-  { title: "Local Browser Agent", type: "LOCAL MULTIMODAL", image: "/project-media/local-browser-agent.png", result: "고객 화면을 외부 API로 보내지 않는 Ollama 기반 자율 브라우저 Agent", stack: "Qwen2.5 · LLaVA · Playwright" },
-  { title: "Snap-p", type: "CREATIVE AUTOMATION", image: "/project-media/snap-p.webp", result: "상품 분석부터 아마존 리스팅 이미지 9장·카피·정책 검수까지 자동화", stack: "Gemini · Next.js · Prisma" },
-  { title: "Exam Forge", type: "DOMAIN MODELING", image: "/project-media/exam-forge.svg", result: "수치·정답·선택지·TikZ 도형이 함께 변하는 수학 문항 생성·편집 PWA", stack: "Next.js · TikZ · KaTeX" },
-  { title: "SNS EasyUp", type: "AI PUBLISHING", image: "/project-media/sns-easyup.png", result: "아이디어를 채널별 카피·이미지로 만들고 Meta 예약 발행까지 연결한 운영 실험", stack: "Meta API · Image Generation · Next.js" },
+  { title: "Dubby", type: "MOBILE PRODUCT", image: "/project-media/dubby.jpg", result: "1:1·그룹 채팅, 스토리, 투표와 서버 권위형 카드게임을 하나로 묶어 Google Play에 출시", stack: "Flutter · Firebase · Cloud Functions", href: "https://play.google.com/store/apps/details?id=com.dubby.ktalk", linkLabel: "GOOGLE PLAY ↗" },
+  { title: "Exam Forge", type: "DOMAIN PRODUCT", image: "/project-media/exam-forge.webp", result: "현직 강사의 불편에서 출발해 숫자·정답·풀이·TikZ 도형이 함께 바뀌고 A4로 바로 인쇄되는 시험지 PWA", stack: "Next.js · TikZ · KaTeX", href: "https://exam-forge-orcin.vercel.app/", linkLabel: "LIVE SITE ↗" },
+  { title: "Local Browser Agent", type: "LOCAL MULTIMODAL", image: "/project-media/local-browser-agent.png", result: "고객 화면을 외부 API로 보내지 않고 자연어 목표를 실행하는 로컬 자율 브라우저 Agent", stack: "Qwen2.5 · LLaVA · Playwright" },
+  { title: "Snap-p", type: "CREATIVE AUTOMATION", image: "/project-media/snap-p.webp", result: "상품 분석부터 아마존 리스팅 이미지 9장·카피·정책 검수까지 자동화", stack: "Gemini · Next.js · Prisma", href: "https://snap-p.com/", linkLabel: "LIVE SITE ↗" },
 ];
 
 // Page order lives in one list so page numbers and the "NN / TOTAL" footer can
@@ -93,7 +97,7 @@ function CoverPage({ page }: { page: number }) {
       <PageMark page={page} label="PORTFOLIO 2026" />
       <div className={styles.coverTop}>
         <span className={styles.logo}>KYB</span>
-        <div><strong>Kang YeonBae</strong><span>Software Engineer</span></div>
+        <div><strong>Kang YeonBae</strong><span>AI Full-stack Engineer</span></div>
       </div>
       <div className={styles.coverBody}>
         <p className={styles.kicker}>APPLIED AI · BACKEND · PRODUCT</p>
@@ -101,9 +105,9 @@ function CoverPage({ page }: { page: number }) {
         <p>AI·백엔드·제품 경험을 연결해 아이디어를 실제 업무와 사용자가 계속 사용할 수 있는 서비스로 만듭니다.</p>
       </div>
       <div className={styles.coverProof}>
-        <div><span>OPERATIONS</span><strong>≈40%</strong><p>VOC/CS 업무 절감</p></div>
-        <div><span>MODEL</span><strong>99.9%</strong><p>반복 AI 비용 절감</p></div>
-        <div><span>DELIVERY</span><strong>{projectCount}</strong><p>선별 프로젝트</p></div>
+        <div><span>OPERATIONS</span><strong>40%</strong><p>VOC/CS 생산성 개선</p></div>
+        <div><span>MODEL</span><strong>95%+</strong><p>리뷰 긍·부정 분류 정확도</p></div>
+        <div><span>DELIVERY</span><strong>8</strong><p>요구 분석부터 운영한 실무 제품</p></div>
       </div>
       <div className={styles.contactLine}>
         <a href="mailto:dusqo7951@gmail.com">dusqo7951@gmail.com</a>
@@ -157,7 +161,7 @@ function CaseSystemPage({ study, page }: { study: CaseStudy; page: number }) {
       <PageMark page={page} label={study.type} />
       <header className={`${styles.caseHeader} ${styles.caseHeaderWide}`}>
         <div>
-          <p className={styles.kicker}>CASE STUDY {study.order} · SYSTEM & SCALE</p>
+          <p className={styles.kicker}>CASE STUDY {study.order} · PRODUCT &amp; SYSTEM</p>
           <h2>{study.title}</h2>
           <p>{study.thesis}</p>
         </div>
@@ -170,7 +174,7 @@ function CaseSystemPage({ study, page }: { study: CaseStudy; page: number }) {
         <div><dt>STATUS</dt><dd>{study.status}</dd></div>
       </dl>
 
-      <SectionLabel label="SCALE" note={study.scaleSource} />
+      <SectionLabel label="PRODUCT EVIDENCE" note={study.scaleSource} />
       <div className={styles.scaleGrid}>
         {study.scale.map((metric) => (
           <div key={metric.label}>
@@ -367,10 +371,10 @@ function PairPage({ title, subtitle, items, page }: { title: string; subtitle: s
           const detail = projectDetails[item.id];
           return <article className={styles.pairCard} key={item.id}>
             <header><span>{item.type}</span><h3>{item.title}</h3><p>{item.copy}</p></header>
-            <figure><Image src={item.image} alt={`${item.title} 화면`} fill sizes="85mm" /></figure>
+            <figure><Image src={item.image} alt={`${item.title} 화면`} fill sizes="85mm" loading="eager" /></figure>
             <PrintArchitecture steps={detail.architecture} signals={detail.signals.slice(0, 3)} compact />
             <div className={styles.pairMeta}><div><span>MY ROLE</span><strong>{item.role}</strong></div><div><span>RESULT</span><strong>{item.proof}</strong></div></div>
-            <div className={styles.pairStack}>{item.stack}</div>
+            <div className={styles.pairStack}><span>{item.stack}</span>{item.href && <a href={item.href}>{item.linkLabel ?? "OPEN PRODUCT ↗"}</a>}</div>
           </article>;
         })}
       </div>
@@ -391,19 +395,19 @@ function CustomerOperationsPage({ page }: { page: number }) {
       <div className={styles.operationsSummary}>
         <article><span>PROBLEM</span><p>같은 고객사에서 상담 기록과 상품 리뷰가 빠르게 쌓였고, 사람이 다시 읽어 정리하는 반복 업무와 범용 AI API 비용이 함께 증가했습니다.</p></article>
         <article><span>MY ROLE</span><p>두 제품 모두 요구 분석, 기획, 설계, 개발, 패키징과 배포까지 전 과정을 단독으로 담당했습니다.</p></article>
-        <article><span>RESULT</span><p>VOC/CS 반복 업무 약 40% 절감. 리뷰 분류는 월 10만 건 동일 처리량 기준 월 약 80만원에서 약 1천원으로 비용을 낮추도록 설계했습니다.</p></article>
+        <article><span>RESULT</span><p>상담 기록 정리 자동화로 CS 생산성을 약 40% 개선했고, 자체 학습 모델로 리뷰 긍·부정 분류 정확도 95% 이상을 달성했습니다.</p></article>
       </div>
 
       <div className={styles.operationsProducts}>
         <article>
           <header><span>01 · LLM OPERATIONS</span><h3>VOC Counseling Analyzer</h3><p>채널톡 상담을 수집해 LLM으로 요약·항목화하고 Google Sheets 리포트까지 자동 생성했습니다.</p></header>
-          <figure><Image src="/project-media/voc-collector.webp" alt="VOC 상담 분석기 실행 화면" fill sizes="85mm" /></figure>
+          <figure><Image src="/project-media/voc-collector.webp" alt="VOC 상담 분석기 실행 화면" fill sizes="85mm" loading="eager" /></figure>
           <PrintArchitecture steps={["ChannelTalk", "Conversation extract", "LLM summary", "Structured fields", "Google Sheets"]} signals={["Desktop package", "Manual review", "Batch workflow"]} compact />
           <footer><strong>성과 · VOC/CS 반복 업무 약 40% 절감</strong><span>OpenAI · ChannelTalk API · Streamlit · PyInstaller</span></footer>
         </article>
         <article>
           <header><span>02 · RIGHT-SIZED MODEL</span><h3>Review Sentiment Classifier</h3><p>AI-Hub 데이터로 TF-IDF·Linear SVM 기반 경량 NLP 모델을 직접 학습하고, 리뷰 수집·판독·부정 리뷰 알림을 연결했습니다.</p></header>
-          <div className={styles.operationsMetric}><strong>99.9%</strong><span>동일 처리량 기준 추정 비용 절감</span><p>월 10만 건: 약 80만원 → 약 1천원</p></div>
+          <div className={styles.operationsMetric}><strong>95%+</strong><span>리뷰 긍·부정 분류 정확도</span><p>부정 리뷰 조기 탐지·알림 체계 구축</p></div>
           <PrintArchitecture steps={["Cafe24 reviews", "Clean / Label", "TF-IDF", "Linear SVM", "Negative alert"]} signals={["Self-trained model", "No per-request LLM", "Flask API"]} compact />
           <footer><strong>성과 · 반복 분류의 외부 API 의존과 비용 축소</strong><span>scikit-learn · TF-IDF · Linear SVM · Flask</span></footer>
         </article>
@@ -420,8 +424,8 @@ function BreadthPage({ page }: { page: number }) {
       <header className={styles.pageHeader}><p className={styles.kicker}>PRODUCT BREADTH</p><h2>도메인이 달라도,<br />문제를 제품으로 끝까지 연결합니다.</h2></header>
       <div className={styles.breadthGrid}>
         {breadthCases.map((item) => <article key={item.title}>
-          <figure><Image src={item.image} alt={`${item.title} 화면`} fill sizes="85mm" /></figure>
-          <span>{item.type}</span><h3>{item.title}</h3><p>{item.result}</p><small>{item.stack}</small>
+          <figure><Image src={item.image} alt={`${item.title} 화면`} fill sizes="85mm" loading="eager" /></figure>
+          <span>{item.type}</span><h3>{item.title}</h3><p>{item.result}</p><footer><small>{item.stack}</small>{item.href && <a href={item.href}>{item.linkLabel}</a>}</footer>
         </article>)}
       </div>
       <PageFooter page={page} />
@@ -453,7 +457,7 @@ function FoundationPage({ page }: { page: number }) {
 }
 
 function FoundationCase({ title, role, image, copy, href }: { title: string; role: string; image: string; copy: string; href: string }) {
-  return <article><figure><Image src={image} alt={`${title} 대표 화면`} fill sizes="85mm" /></figure><h3>{title}</h3><p>{copy}</p><span>{role}</span><a href={href}>GITHUB ↗</a></article>;
+  return <article><figure><Image src={image} alt={`${title} 대표 화면`} fill sizes="85mm" loading="eager" /></figure><h3>{title}</h3><p>{copy}</p><span>{role}</span><a href={href}>GITHUB ↗</a></article>;
 }
 
 function PrintArchitecture({ steps, signals, compact = false }: { steps: string[]; signals: string[]; compact?: boolean }) {
@@ -469,5 +473,5 @@ function PageMark({ page, label }: { page: number; label: string }) {
 }
 
 function PageFooter({ page }: { page: number }) {
-  return <footer className={styles.pageFooter}><span>KANG YEONBAE · SOFTWARE ENGINEER</span><span>{String(page).padStart(2, "0")} / {String(TOTAL_PAGES).padStart(2, "0")}</span></footer>;
+  return <footer className={styles.pageFooter}><span>KANG YEONBAE · AI FULL-STACK ENGINEER</span><span>{String(page).padStart(2, "0")} / {String(TOTAL_PAGES).padStart(2, "0")}</span></footer>;
 }

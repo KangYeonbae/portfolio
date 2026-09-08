@@ -56,11 +56,11 @@ export const projectDetails: Record<string, ProjectDetail> = {
   "review-classifier": {
     problem: "리뷰 감성 분류에 매 요청마다 LLM을 사용하면 비용과 지연이 커, 대량 처리에 적합한 경량 모델이 필요했습니다.",
     architecture: ["Cafe24 reviews", "Clean / Label", "Feature pipeline", "SVM classifier", "Flask API"],
-    signals: ["86.0% accuracy", "1.2 MB model", "~10 ms inference", "99.9% cost reduction"],
+    signals: ["95%+ 긍·부정 정확도", "자체 학습 모델", "빠른 대량 판독", "부정 리뷰 조기 알림"],
     decisions: [
-      { title: "전통 ML을 선택", detail: "긍정·중립·부정의 경계가 명확한 3-class 분류였기 때문에 비용과 응답성이 좋은 scikit-learn 모델을 우선했습니다." },
+      { title: "전통 ML을 선택", detail: "긍정·부정처럼 판단 경계가 명확한 반복 분류였기 때문에 범용 LLM 대신 비용과 응답성이 좋은 scikit-learn 모델을 선택했습니다." },
       { title: "도메인 다양성을 먼저 확보", detail: "한 카테고리에서 40%까지 떨어진 실패를 확인한 뒤, AI-Hub의 5개 커머스 카테고리 10만 건으로 학습 범위를 넓혔습니다." },
-      { title: "정확도보다 운영 비용까지 측정", detail: "고정된 테스트 분할에서 86.0% 정확도를 확인하고, 1.2MB 모델·약 10ms 추론으로 서버리스 배포 비용을 함께 최적화했습니다." },
+      { title: "판독을 대응 흐름에 연결", detail: "모델 정확도만 보여주는 데서 끝내지 않고 Cafe24 리뷰 수집과 부정 리뷰 알림을 연결해 현업의 조기 대응 흐름으로 만들었습니다." },
     ],
   },
   "local-browser-agent": {
@@ -113,9 +113,9 @@ export const projectDetails: Record<string, ProjectDetail> = {
     ],
   },
   "byeoljari": {
-    problem: "도메인 계산의 정확성, 유료 결제 검증, 긴 AI 해석 경험을 하나의 B2C 흐름에서 신뢰 가능하게 연결해야 했습니다.",
+    problem: "무료 결과를 본 사용자가 유료 AI 리딩을 선택하고, 결제한 뒤에는 반드시 자신의 결과를 받아야 했습니다. 계산 정확도와 결제 신뢰, 긴 생성 대기를 하나의 B2C 경험으로 연결하는 것이 핵심이었습니다.",
     architecture: ["Next.js client", "Payment verification", "FastAPI domain engine", "AI stream", "Supabase archive"],
-    signals: ["Server authority", "Webhook verify", "Stream recovery", "Audit trail"],
+    signals: ["무료 → 유료 전환", "실결제 운영", "결과 전달 보장", "SEO · 광고 퍼널"],
     decisions: [
       { title: "계산과 해석 분리", detail: "사주·점성술 값은 결정론적 Python 엔진에서 계산하고 LLM은 계산 결과를 설명하는 역할만 맡습니다." },
       { title: "서버 기준 결제 검증", detail: "브라우저의 성공 응답을 신뢰하지 않고 서버에서 PortOne 거래 상태와 금액을 재검증한 뒤 콘텐츠를 엽니다." },
@@ -132,22 +132,25 @@ export const projectDetails: Record<string, ProjectDetail> = {
     ],
   },
   "meetsub": {
-    problem: "회의 중 자막은 지연이 짧아야 하고, 종료 후에는 같은 세션에서 기록·요약·PDF까지 이어져야 했습니다.",
-    architecture: ["Browser audio", "WebSocket / Deepgram", "Gemini translate", "Firestore / GCS", "Report / PDF"],
-    signals: ["Realtime stream", "Session recovery", "Storage lifecycle", "Cloud Run scaling"],
+    problem: "보안 정책상 프로그램을 설치할 수 없는 회의 환경에서도 전문 기술용어가 정확한 한·영 자막을 제공해야 했습니다. 빠른 첫 자막뿐 아니라 이미 읽은 문장이 뒤늦게 뒤집히지 않는 안정성도 중요했습니다.",
+    architecture: ["Browser tab audio", "WebSocket / Deepgram", "용어집 보정", "Vertex Gemini", "Record / Report / PDF"],
+    signals: ["무설치 브라우저", "전문용어 교정", "자막 안정화", "장기 인증키 없는 배포"],
     decisions: [
-      { title: "실시간과 후처리 분리", detail: "자막 경로는 지연을 최소화하고 요약·PDF처럼 무거운 작업은 회의 종료 후 별도 흐름으로 처리합니다." },
-      { title: "세션 단위 추적", detail: "브라우저 연결, 자막 조각, 녹음 파일과 최종 리포트가 동일한 회의 ID로 연결됩니다." },
+      { title: "설치 대신 브라우저 탭 캡처", detail: "Teams·Zoom 오디오를 브라우저에서 바로 받아 별도 프로그램 설치가 제한된 환경에서도 사용할 수 있게 했습니다." },
+      { title: "용어집을 두 단계에 주입", detail: "도메인별 용어를 STT keyterm과 번역 프롬프트에 함께 넣어 부품명과 고유 기술명의 오인식을 교정합니다." },
+      { title: "읽은 자막을 다시 바꾸지 않기", detail: "안정된 영어 구간만 이어 붙이고 발화가 끝나면 전체 번역을 한 번 확정해 자막이 뒤늦게 흔들리는 문제를 줄였습니다." },
+      { title: "장기 서비스 계정 키 제거", detail: "Cloud Run 배포는 GitHub Actions Workload Identity Federation을 사용해 장기 인증키 파일 없이 운영합니다." },
     ],
   },
   "exam-forge": {
-    problem: "수학 문제의 숫자만 바꿔도 선택지·정답·도형이 함께 바뀌어야 하며, 인쇄 결과는 A4 규격을 안정적으로 지켜야 했습니다.",
+    problem: "현직 강사는 워드·한글에서 문제의 숫자와 선택지는 고쳐도 도형까지 함께 수정하기 어려웠습니다. 값을 바꿀 때 문제·선택지·정답·풀이·도형이 서로 어긋나지 않고, 마지막에는 A4 시험지로 바로 인쇄돼야 했습니다.",
     architecture: ["Question generator", "Domain validation", "TikZ render API", "SVG cache", "A4 editor / PWA"],
-    signals: ["Deterministic rule", "Parameter schema", "Bearer boundary", "Compile cache"],
+    signals: ["도형까지 함께 갱신", "교육과정 매핑", "A4 자동 분할", "무설치 PWA"],
     decisions: [
-      { title: "문항을 생성기로 모델링", detail: "문제 문장과 정답을 따로 저장하지 않고 같은 파라미터에서 모든 결과가 만들어지도록 구성했습니다." },
+      { title: "문항 전체를 하나의 생성기로 모델링", detail: "같은 파라미터에서 문제 문장·선택지·정답·풀이·도형을 함께 만들어 일부만 바뀌어 서로 어긋나는 문제를 막았습니다." },
       { title: "TikZ 렌더러 격리", detail: "TeX 바이너리가 필요한 컴파일 작업을 일반 웹 앱과 분리하고 서버 간 토큰으로 원시 TikZ API를 보호합니다." },
-      { title: "도메인 검증을 빌드에 포함", detail: "타입 검사 외에도 사분면, 각도, 편집 가능 파라미터 등 수학 규칙을 자동 검증합니다." },
+      { title: "교육과정과 난이도를 조립 규칙으로", detail: "성취기준 체계를 데이터로 정리하고 문항 수와 배점, 난이도 분포가 시험지 안에서 맞도록 구성했습니다." },
+      { title: "편집에서 인쇄까지 한 화면에", detail: "시험지 편집 UI와 A4 페이지 자동 분할, PWA 설치를 연결해 별도 문서 프로그램 없이 완성본을 출력하도록 했습니다." },
     ],
   },
   "sns-easyup": {
