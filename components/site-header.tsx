@@ -7,7 +7,7 @@ import { ArrowUpRight, Close, Menu } from "./icons";
 
 const links = [
   { href: "/", label: "Home" },
-  { href: "/#work", label: "Selected work" },
+  { href: "/explore", label: "Selected work" },
   { href: "/projects", label: "Projects" },
   { href: "/portfolio", label: "Portfolio" },
   { href: "/notes", label: "Notes" },

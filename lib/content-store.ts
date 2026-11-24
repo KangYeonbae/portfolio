@@ -106,6 +106,8 @@ function toPost(row: DbPost): Post {
 }
 
 function toProject(row: DbProject): Project {
+  const media = staticProjects.find((project) => project.id === row.id);
+
   return {
     id: row.id,
     title: row.title,
@@ -117,6 +119,12 @@ function toProject(row: DbProject): Project {
     tags: row.tags ?? [],
     status: row.status ?? undefined,
     url: row.url ?? undefined,
+    image: media?.image,
+    imageFit: media?.imageFit,
+    imageAspect: media?.imageAspect,
+    video: media?.video,
+    videoPoster: media?.videoPoster,
+    videoCaption: media?.videoCaption,
   };
 }
 
