@@ -135,44 +135,46 @@
   top: 0;
   height: 100svh;
   isolation: isolate;
-  background: radial-gradient(ellipse at 65% 55%, #30294f, #101224 75%);
+  color: #322920;
+  background: radial-gradient(ellipse at 65% 40%, #fff8e9, #e7e0d5 80%);
 }
-.galleryCanvas { position: absolute; inset: 0; pointer-events: none; z-index: -1; }
-.galleryIntro { position: absolute; top: 7%; left: 6%; }
+.galleryCanvas { position: absolute; inset: 0; z-index: 0; }
+.galleryCanvas canvas { touch-action: pan-y; }
+.galleryIntro { position: absolute; z-index: 1; top: 7%; left: 6%; pointer-events: none; }
 .galleryIntro h1 { margin: 0 0 .5rem; font-size: clamp(1.8rem, 4vw, 3.5rem); }
-.galleryIntro p { margin: 0; color: #d5d4e3; }
+.galleryIntro p { margin: 0; color: #584b3e; }
 .galleryMarker {
   position: absolute;
-  left: var(--marker-x, 64%);
-  top: var(--marker-y, 48%);
-  transform: translate(-50%, -50%);
+  z-index: 1;
+  left: 6%;
+  bottom: 6%;
   display: grid;
   gap: .55rem;
-  width: min(38vw, 13.5rem);
-  padding: .65rem;
+  width: min(45vw, 13.5rem);
+  padding: .65rem .8rem;
   text-align: left;
-  background: #181a31;
-  color: #fff;
-  border: 1px solid #aaa4ff;
-  box-shadow: 0 0 1.5rem #7862d466;
+  background: #fcf8f2;
+  color: #33291f;
+  border: 1px solid #b4a391;
   cursor: pointer;
 }
-.galleryMarker:hover { background: #322758; }
-.galleryMarker img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: contain; background: #f5f4fa; }
+.galleryMarker[data-mounted="false"] { bottom: 23%; }
+.galleryMarker:hover { background: #fff; }
+.galleryMarker img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: contain; background: #f7f0e5; }
 .galleryMarker > span { font-size: .875rem; overflow-wrap: anywhere; }
-.galleryOpen { display: flex; justify-content: space-between; gap: .25rem; color: #d4cdff; }
+.galleryOpen { display: flex; justify-content: space-between; gap: .25rem; color: #59412e; }
 .galleryControls {
   position: absolute;
+  z-index: 1;
   bottom: 6%;
-  left: 50%;
-  transform: translateX(-50%);
+  right: 6%;
   display: flex;
   align-items: center;
   gap: 1rem;
   white-space: nowrap;
   padding: .35rem;
-  background: #13152c;
-  border: 1px solid #55567b;
+  background: #fcf8f2;
+  border: 1px solid #b4a391;
 }
 .galleryControls button, .galleryDialog button {
   min-width: 44px;
@@ -182,8 +184,10 @@
   color: #fff;
   cursor: pointer;
 }
+.galleryControls button { background: #e8ddcf; border-color: #b4a391; color: #33291f; }
 .galleryControls button:disabled { opacity: .5; cursor: default; }
-.galleryControls button:hover:enabled, .galleryDialog button:hover { background: #473873; }
+.galleryControls button:hover:enabled { background: #fff; }
+.galleryDialog button:hover { background: #473873; }
 .galleryViewport button:focus-visible, .galleryDialog :focus-visible { outline: 2px solid #c2baff; outline-offset: 3px; }
 .galleryDialog {
   box-sizing: border-box;
@@ -302,23 +306,127 @@
 .readingChoices button span { font: 1.5rem / 1.2 Georgia, serif; }
 .readingResult { margin-top: .6rem; padding: .8rem; min-height: 5.5rem; border-left: 2px solid var(--room-accent); background: var(--room-base); }
 .readingResult p { margin: .25rem 0 0; }
-.dubbyPlay { min-height: 6.25rem; display: flex; align-items: center; gap: .9rem; }
-.dubbyCharacter { width: 4.5rem; height: 4.5rem; flex: none; display: grid; place-items: center; border-radius: 30%; background: #ff916d; box-shadow: 0 .45rem 0 #a95043; }
-.dubbyCharacter i { width: 2.25rem; height: 1.85rem; position: relative; background: #fff7ee; border-radius: 50%; }
-.dubbyCharacter i::after { content: ""; position: absolute; bottom: 0; left: 0; width: .65rem; height: .7rem; background: #fff7ee; transform: skew(-16deg); border-radius: .13rem; }
+.dubbyRoom {
+  min-height: 100%;
+  isolation: isolate;
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  color: #402c29;
+  background: radial-gradient(ellipse at 75% 45%, #ffc9ad, transparent 58%), #fff4eb;
+}
+.dubbyScene { position: absolute; inset: 0; z-index: -1; overflow: hidden; }
+.dubbyRoom[data-app="true"] .dubbyScene { opacity: 0; }
+.galleryDialog .dubbyIllustration { height: 100%; max-height: none; object-fit: cover; object-position: center 49%; }
+.dubbyScene::after { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, #28202495, transparent 38%); }
+.dubbyToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .55rem;
+  padding: clamp(.8rem, 3vw, 2rem) 5%;
+}
+.dubbyToolbar form { margin: 0; }
+.dubbyToolbar button, .dubbyScreenChoices button {
+  padding: .65rem 1rem;
+  border: 1px solid #a86852;
+  border-radius: 999px;
+  background: #fff8f3;
+  color: #603b30;
+  font-weight: 700;
+}
+.dubbyToolbar button:hover, .dubbyScreenChoices button:hover,
+.dubbyScreenChoices button[aria-pressed="true"] { background: #693d31; color: #fff8f3; }
+.dubbyRoomContent {
+  width: min(90%, 72rem);
+  margin: auto;
+  padding: 0 0 5svh;
+  display: grid;
+  align-items: center;
+  gap: clamp(1.25rem, 6vw, 5rem);
+}
+.dubbyRoom[data-app="false"] .dubbyRoomContent { margin-block: auto 0; color: #fff; }
+.dubbyRoom[data-app="true"] .dubbyRoomContent { grid-template-columns: 1fr 1fr; }
+.dubbyRoomCopy h1 { margin: 0; font-size: clamp(3.6rem, 10vw, 8rem); line-height: 1; letter-spacing: -.07em; }
+.dubbyRoomCopy p { color: #603e34; font-size: clamp(1.1rem, 2vw, 1.6rem); max-width: 23ch; }
+.dubbyDetail { display: inline-flex; min-height: 44px; align-items: center; font-weight: 700; text-decoration: underline; text-underline-offset: .25em; }
+.dubbyDevices { display: grid; place-items: center; position: relative; }
+.dubbyPhone {
+  width: min(70vw, 20.5rem);
+  margin: 0;
+  position: relative;
+  padding: clamp(.35rem, 1vw, .6rem);
+  border: 1px solid #774f47;
+  border-radius: clamp(1.5rem, 4vw, 2.65rem);
+  background: #201c24;
+  box-shadow: 0 1.6rem 3.5rem #65271d47, inset 0 0 0 2px #fff3;
+}
+.dubbyPhoneCamera { position: absolute; z-index: 1; width: 23%; height: .85rem; left: 38.5%; top: .95rem; border-radius: 999px; background: #2a2530; }
+.dubbyPhoneScreen {
+  height: clamp(23rem, 68svh, 38rem);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: clamp(1.1rem, 3vw, 2.15rem);
+  background: #fffbf8;
+  color: #3a2724;
+}
+.dubbyPhoneStatus { display: flex; justify-content: space-between; padding: .6rem 1rem .35rem; font: 700 .66rem / 1.4 system-ui, sans-serif; }
+.dubbyPhoneHeader { display: flex; align-items: center; min-height: 3.2rem; padding: 0 .85rem; gap: .15rem; border-bottom: 1px solid #f0e1d7; }
+.dubbyPhoneHeader h2 { font-size: 1.2rem; margin: 0; letter-spacing: -.045em; }
+.dubbyPhoneScreen button { border: 0; background: transparent; color: #563629; padding: .4rem; }
+.dubbyPhoneHeader button { font-size: 1.45rem; line-height: 1; }
+.dubbyPhoneScreen button:hover { background: #fff0e5; }
+.dubbyContactList { flex: 1; min-height: 0; overflow: auto; list-style: none; margin: 0; padding: .45rem .55rem; }
+.dubbyContactList button { display: flex; width: 100%; gap: .5rem; align-items: center; text-align: left; min-height: 3.6rem; border-radius: .7rem; }
+.dubbyContactAvatar { flex: none; display: grid; place-items: center; width: 2.15rem; height: 2.15rem; border-radius: .8rem; font-weight: 700; background: #ffddc7; }
+.dubbyContactAvatar[data-tone="mint"] { background: #d6ede1; }
+.dubbyContactAvatar[data-tone="lavender"] { background: #e7dff7; }
+.dubbyContactCopy { display: grid; flex: 1; gap: .18rem; min-width: 0; font-size: .86rem; }
+.dubbyContactCopy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #72594d; }
+.dubbyContactAction { flex: none; font-size: .65rem; color: #72594d; }
+.dubbyScreenChoices { display: grid; grid-template-columns: repeat(2, 1fr); gap: .35rem; border-top: 1px solid #f0e1d7; padding: .35rem .55rem .5rem; }
+.dubbyScreenChoices button { border-radius: .7rem; font-size: .83rem; font-weight: 700; }
+.dubbyScreenChoices button[aria-pressed="true"] { background: #ffddc7; color: #563629; }
+.dubbyConversation { display: flex; flex: 1; flex-direction: column; gap: .55rem; overflow: auto; padding: .75rem; min-height: 0; }
+.dubbyConversation small { align-self: center; color: #72594d; }
+.dubbyConversation p { align-self: start; margin: 0; max-width: 88%; padding: .45rem .6rem; border-radius: .85rem .85rem .85rem .22rem; background: #f1e8e1; color: #49322a; font-size: .8rem; overflow-wrap: anywhere; }
+.dubbyConversation p[data-outgoing] { align-self: end; border-radius: .85rem .85rem .22rem .85rem; background: #ffddc7; }
+.galleryDialog .dubbyComposer { display: flex; align-items: center; margin: 0; gap: .3rem; padding: .35rem .55rem .55rem; border-top: 1px solid #f0e1d7; }
+.dubbyComposer input { flex: 1; min-width: 0; min-height: 44px; padding: .35rem .55rem; border: 1px solid #d4b9aa; border-radius: .7rem; background: #fff; color: #402c29; }
+.dubbyComposer button { font-size: .75rem; font-weight: 700; }
+.dubbyComposer button:disabled { opacity: .5; cursor: default; }
+.dubbyMascot { width: clamp(3.6rem, 8vw, 6.5rem); position: absolute; z-index: 1; left: -9%; bottom: 12%; transform: rotate(-9deg); pointer-events: none; }
+.galleryDialog .dubbyMascot img { position: relative; z-index: 1; background: transparent; border-radius: 25%; box-shadow: 0 .4rem .65rem #63251d36; }
+.dubbyArm, .dubbyWave, .dubbyLegs { position: absolute; color: #553832; }
+.dubbyArm { top: 50%; width: 35%; height: 38%; border-bottom: 3px solid; border-radius: 50%; }
+.dubbyArm { left: -21%; transform: rotate(45deg); }
+.dubbyWave { left: 89%; bottom: 43%; width: 39%; height: 38%; border-right: 3px solid; border-bottom: 3px solid; border-radius: 0 0 55% 0; transform: rotate(-15deg); transform-origin: left bottom; }
+.dubbyWave span { position: absolute; top: -.6rem; right: -.43rem; width: .75rem; height: .95rem; border: 2px solid #553832; border-radius: 52% 52% 45% 40%; background: #ffe5d3; }
+.dubbyLegs { left: 24%; bottom: -29%; width: 51%; height: 39%; border-inline: 3px solid; transform: perspective(40px) rotateX(-13deg); }
 .reportExperiment { grid-column: 1 / -1; width: 100%; }
 @media (max-width: 800px) {
   .roomLayout { grid-template-columns: 1fr; align-content: start; padding-top: 1.5rem; }
   .roomDisplay img { max-height: 40svh; }
 }
+@media (max-width: 720px) {
+  .dubbyRoom[data-app="true"] .dubbyRoomContent { grid-template-columns: 1fr; padding-top: 1.25rem; }
+  .dubbyRoomCopy h1 { font-size: clamp(3.2rem, 13vw, 5rem); }
+  .dubbyMascot { left: -4%; bottom: 8%; }
+  .dubbyPhone { width: min(76vw, 19rem); }
+}
 @media (prefers-reduced-motion: no-preference) {
   .galleryDialog[open] .roomLayout { animation: room-arrive .45s cubic-bezier(.2,.72,.24,1) both; }
   .readingReveal { animation: room-arrive .24s ease-out both; }
-  .dubbyCharacter[data-greet="true"] { animation: dubby-hop .55s cubic-bezier(.2,.72,.25,1) both; }
+  .galleryDialog[open] .dubbyIllustration { animation: dubby-scene-drift 4.5s ease-out both; }
+  .dubbyScene { transition: opacity .56s ease; }
+  .dubbyPhone { animation: dubby-phone-arrive .6s cubic-bezier(.2,.72,.24,1) both; }
+  .dubbyMascot { animation: dubby-greet .6s .2s ease-out both; }
+  .dubbyWave { animation: dubby-wave .52s .42s ease-in-out 4; }
   @keyframes room-arrive { from { opacity: 0; transform: translateY(1rem); } }
-  @keyframes dubby-hop {
-    0%, 100% { transform: translateY(0) rotate(0); }
-    40% { transform: translateY(-.9rem) rotate(-12deg); }
-    70% { transform: translateY(-.25rem) rotate(8deg); }
-  }
+  @keyframes dubby-scene-drift { from { transform: scale(1.025) translateX(-.45%); } to { transform: scale(1.075) translateX(.65%); } }
+  @keyframes dubby-phone-arrive { from { opacity: 0; transform: translateY(2rem) rotate(-3deg); } }
+  @keyframes dubby-greet { from { opacity: 0; transform: translateY(.65rem) rotate(7deg); } }
+  @keyframes dubby-wave { 25% { transform: rotate(-53deg); } 75% { transform: rotate(15deg); } }
 }

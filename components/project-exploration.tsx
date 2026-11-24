@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
+import { DubbyRoom } from "./dubby-room";
+import { ByeoljariRoom } from "./byeoljari-room";
 import styles from "./experience.module.css";
 
 const Scene = dynamic(() => import("./experience-scene"), { ssr: false });
@@ -19,6 +21,7 @@ const stories = [
  { id: "byeoljari", name: "Byeoljari.com", number: "03", label: "PRODUCT / DELIVERY", title: "결제 이후까지\n제품의 경험이니까.", text: "계산과 AI 해석을 분리하고, 결제한 사용자가 끝내 결과를 받는 것까지 하나의 경험으로 설계했습니다.", tags: "CALCULATE / VERIFY / DELIVER", media: "/project-media/byeoljari.png" },
  { id: "dubby", name: "Dubby", number: "04", label: "SOCIAL / MESSENGER", title: "대화하다가\n같이 게임하는 곳.", text: "1:1과 그룹 채팅, 스토리, 투표, 카드게임을 한 앱에 담은 소셜 메신저입니다.", tags: "FLUTTER / FIREBASE / REALTIME", media: "/project-media/dubby.jpg" },
 ] as const;
+const galleryImages = stories.map((story) => story.media);
 
 const rooms = {
   "amazon-ads-agent": { theme: "control", name: "데이터 관제실", action: "리포트 검증 체험" },
@@ -27,43 +30,12 @@ const rooms = {
   dubby: { theme: "dubby", name: "Dubby 라운지" },
 } as const;
 
-const readings = [
-  { name: "사주", symbol: "四", title: "네 기둥", text: "태어난 해·달·날·시간을 네 기둥으로 나누어 살펴봅니다." },
-  { name: "점성술", symbol: "☾", title: "태어난 순간의 하늘", text: "태어난 시간과 장소를 기준으로 천체가 어디에 있었는지 살펴봅니다." },
-  { name: "타로", symbol: "✦", title: "별 · THE STAR", text: "카드 한 장에서 영감을 얻는 전시용 예시입니다." },
-] as const;
-
-function Observatory() {
-  const [chosen, setChosen] = useState<(typeof readings)[number] | null>(null);
-  return <div className={styles.roomInteraction}>
-    <div className={styles.readingChoices} aria-label="관측실 전시 선택">
-      {readings.map((reading) => (
-        <button key={reading.name} type="button" aria-pressed={chosen === reading} onClick={() => setChosen(reading)}>
-          <span aria-hidden="true">{reading.symbol}</span> {reading.name}
-        </button>
-      ))}
-    </div>
-    <div className={styles.readingResult} aria-live="polite">
-      {chosen ? <div key={chosen.name} className={styles.readingReveal}><strong>{chosen.title}</strong><p>{chosen.text}</p></div> : <p>살펴볼 전시를 하나 골라보세요.</p>}
-    </div>
-  </div>;
-}
-
-function DubbyCharacter() {
-  const [greetings, setGreetings] = useState(0);
-  return <div className={styles.roomInteraction}>
-    <div className={styles.dubbyPlay}>
-      <span key={greetings} data-greet={greetings > 0} className={styles.dubbyCharacter} aria-hidden="true"><i /></span>
-      <p aria-live="polite">{greetings === 0 ? "Dubby에게 인사를 건네보세요." : greetings % 2 ? "안녕! 만나서 반가워요." : "다음엔 카드게임도 같이 해요!"}</p>
-    </div>
-    <button type="button" onClick={() => setGreetings((count) => count + 1)}>Dubby에게 인사하기</button>
-  </div>;
-}
-
 export function ProjectExploration() {
   const [progress, setProgress] = useState(0);
   const [reduced, setReduced] = useState(true);
   const [selected, setSelected] = useState(0);
+  const [roomOpen, setRoomOpen] = useState(false);
+  const [sceneReady, setSceneReady] = useState(false);
   const stage = useRef<HTMLDivElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const marker = useRef<HTMLButtonElement>(null);
@@ -72,6 +44,7 @@ export function ProjectExploration() {
   const exhibit = stories[active];
   const preview = stories[selected];
   const room = rooms[preview.id];
+  const onSceneReady = useCallback(() => setSceneReady(true), []);
 
   useEffect(() => {
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -114,8 +87,10 @@ export function ProjectExploration() {
     });
   }
 
-  function openPreview() {
-    setSelected(active);
+  function openPreview(index: number) {
+    marker.current?.focus({ preventScroll: true });
+    setSelected(index);
+    setRoomOpen(true);
     dialog.current?.showModal();
   }
 
@@ -127,17 +102,17 @@ export function ProjectExploration() {
     <div ref={stage} id="work" className={styles.galleryTrack}>
       <div ref={viewport} className={styles.galleryViewport}>
         <div className={styles.galleryCanvas} aria-hidden="true">
-          {!reduced && <Scene progress={progress} active={active} marker={marker} />}
+          {!reduced && <Scene progress={progress} images={galleryImages} onOpen={openPreview} onReady={onSceneReady} />}
         </div>
         <div className={styles.galleryIntro}>
           <h1>프로젝트 전시관</h1>
           <p>스크롤하거나 화살표로 이동하세요.</p>
         </div>
-        <button ref={marker} type="button" className={styles.galleryMarker}
-          aria-haspopup="dialog" onClick={openPreview}>
-          <Image src={exhibit.media} alt="" width={192} height={108} sizes="(max-width: 640px) 38vw, 192px" />
+        <button ref={marker} type="button" className={styles.galleryMarker} data-mounted={!reduced && sceneReady}
+          aria-haspopup="dialog" onClick={() => openPreview(active)}>
+          {(reduced || !sceneReady) && <Image src={exhibit.media} alt="" width={192} height={108} sizes="192px" />}
           <span>{exhibit.name}</span>
-          <span className={styles.galleryOpen}>프로젝트 보기 <span aria-hidden="true">↗</span></span>
+          <span className={styles.galleryOpen}>보기 <span aria-hidden="true">↗</span></span>
         </button>
         <nav className={styles.galleryControls} aria-label="전시관 이동">
           <button type="button" disabled={active === 0} onClick={() => goToExhibit(active - 1)} aria-label="이전 프로젝트">←</button>
@@ -146,7 +121,8 @@ export function ProjectExploration() {
         </nav>
       </div>
     </div>
-    <dialog ref={dialog} className={styles.galleryDialog} data-room={room.theme} aria-labelledby="project-preview-title">
+    <dialog ref={dialog} className={styles.galleryDialog} data-room={room.theme} aria-labelledby="project-preview-title" onClose={() => setRoomOpen(false)}>
+      {preview.id === "dubby" && roomOpen ? <DubbyRoom /> : preview.id === "byeoljari" && roomOpen ? <ByeoljariRoom /> : <>
       <div className={styles.roomAtmosphere} aria-hidden="true" />
       <div className={styles.roomContent}>
         <form method="dialog"><button type="submit" autoFocus>← 전시관으로 돌아가기</button></form>
@@ -155,8 +131,6 @@ export function ProjectExploration() {
             <p className={styles.roomName}>{room.name}</p>
             <h1 id="project-preview-title">{preview.name}</h1>
             <p>{preview.text}</p>
-            {preview.id === "byeoljari" && <Observatory />}
-            {preview.id === "dubby" && <DubbyCharacter />}
             <div className={styles.roomActions}>
               <Link className={styles.textLink} href={`/projects/${preview.id}`}>프로젝트 자세히 보기 <span aria-hidden="true">↗</span></Link>
               {"action" in room && (
@@ -171,6 +145,7 @@ export function ProjectExploration() {
           </figure>
         </div>
       </div>
+      </>}
     </dialog>
  <div className={styles.stage}><div className={styles.storyContent}><div className={styles.chapterIntro}><p className={styles.eyebrow}>SELECTED WORK / 2025—2026</p><h2>문제와 해답 사이,<br /><em>제가 만든 것들.</em></h2><p>스크롤을 따라 제품 이야기를 만나보세요.</p></div>{stories.map((story, index) => <section id={`story-${story.id}`} className={styles.story} key={story.id}><div className={styles.storyCopy}><span className={styles.storyNumber}>{story.number} <i>/ {String(stories.length).padStart(2, "0")}</i></span><p className={styles.eyebrow}>{story.label}</p><h2>{story.title}</h2><p>{story.text}</p><span className={styles.storyTags}>{story.tags}</span><Link className={styles.textLink} href={`/projects/${story.id}`}>프로젝트 자세히 보기 <span>↗</span></Link></div><Link href={`/projects/${story.id}`} className={styles.screen} aria-label={`${story.name} 상세 보기`}><div className={styles.screenBar}><span>● ● ●</span><span>{story.id}</span></div><div className={styles.screenImage} style={{ backgroundImage: `url('${story.media}')` }} /><div className={styles.screenCaption}><span>{story.label}</span><b>{story.number} / {String(stories.length).padStart(2, "0")}</b></div></Link>{index === 0 && <div id="report-experiment" className={styles.reportExperiment}><ReportDemo /></div>}</section>)}</div></div>
     <footer className={styles.exploreEnd}><Link href="/projects">전체 프로젝트 보기</Link></footer>

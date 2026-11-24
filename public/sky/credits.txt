@@ -1,0 +1,10 @@
+Star positions, magnitudes and colour indices: David Nash / Astronomy Nexus,
+HYG Stellar Database v4.1.
+Source: https://github.com/astronexus/HYG-Database/tree/main/hyg/CURRENT
+Catalogue documentation: https://github.com/astronexus/HYG-Database/blob/main/hyg/README.md
+License for the derived star data: CC BY-SA 4.0
+https://creativecommons.org/licenses/by-sa/4.0/
+
+Changes: excluded the Sun, retained stars with magnitude at most 6.35,
+converted right ascension to degrees, rounded values and exported JSON.
+The Orion segments are the portfolio's own connections between these positions.
