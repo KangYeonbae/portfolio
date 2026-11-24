@@ -17,7 +17,48 @@ const stories = [
  { id: "amazon-ads-agent", name: "Amazon Ads Reporting Agent", number: "01", label: "AI REPORTING / TRUST", title: "생성보다 중요한\n검증의 순간.", text: "AI가 리포트를 작성하고, 코드는 원본 데이터와 숫자를 대조합니다. 신뢰할 수 있는 결과를 만들기 위해 역할을 분리했습니다.", tags: "LLM GENERATION / PYTHON VALIDATION", media: "/project-media/amazon-reporting.png" },
  { id: "bid-master", name: "Bid Master", number: "02", label: "WORKFLOW / AUTOMATION", title: "몇 시간의 반복을\n하나의 흐름으로.", text: "흩어진 입찰 공고와 문서를 모으고 품목을 정리해, 사용자가 판단에 집중할 수 있도록 만들었습니다.", tags: "COLLECT / MATCH / DECIDE", media: "/project-media/bid-master.webp" },
  { id: "byeoljari", name: "Byeoljari.com", number: "03", label: "PRODUCT / DELIVERY", title: "결제 이후까지\n제품의 경험이니까.", text: "계산과 AI 해석을 분리하고, 결제한 사용자가 끝내 결과를 받는 것까지 하나의 경험으로 설계했습니다.", tags: "CALCULATE / VERIFY / DELIVER", media: "/project-media/byeoljari.png" },
-];
+ { id: "dubby", name: "Dubby", number: "04", label: "SOCIAL / MESSENGER", title: "대화하다가\n같이 게임하는 곳.", text: "1:1과 그룹 채팅, 스토리, 투표, 카드게임을 한 앱에 담은 소셜 메신저입니다.", tags: "FLUTTER / FIREBASE / REALTIME", media: "/project-media/dubby.jpg" },
+] as const;
+
+const rooms = {
+  "amazon-ads-agent": { theme: "control", name: "데이터 관제실", action: "리포트 검증 체험" },
+  "bid-master": { theme: "dispatch", name: "물류 작업장" },
+  byeoljari: { theme: "observatory", name: "별자리 관측실" },
+  dubby: { theme: "dubby", name: "Dubby 라운지" },
+} as const;
+
+const readings = [
+  { name: "사주", symbol: "四", title: "네 기둥", text: "태어난 해·달·날·시간을 네 기둥으로 나누어 살펴봅니다." },
+  { name: "점성술", symbol: "☾", title: "태어난 순간의 하늘", text: "태어난 시간과 장소를 기준으로 천체가 어디에 있었는지 살펴봅니다." },
+  { name: "타로", symbol: "✦", title: "별 · THE STAR", text: "카드 한 장에서 영감을 얻는 전시용 예시입니다." },
+] as const;
+
+function Observatory() {
+  const [chosen, setChosen] = useState<(typeof readings)[number] | null>(null);
+  return <div className={styles.roomInteraction}>
+    <div className={styles.readingChoices} aria-label="관측실 전시 선택">
+      {readings.map((reading) => (
+        <button key={reading.name} type="button" aria-pressed={chosen === reading} onClick={() => setChosen(reading)}>
+          <span aria-hidden="true">{reading.symbol}</span> {reading.name}
+        </button>
+      ))}
+    </div>
+    <div className={styles.readingResult} aria-live="polite">
+      {chosen ? <div key={chosen.name} className={styles.readingReveal}><strong>{chosen.title}</strong><p>{chosen.text}</p></div> : <p>살펴볼 전시를 하나 골라보세요.</p>}
+    </div>
+  </div>;
+}
+
+function DubbyCharacter() {
+  const [greetings, setGreetings] = useState(0);
+  return <div className={styles.roomInteraction}>
+    <div className={styles.dubbyPlay}>
+      <span key={greetings} data-greet={greetings > 0} className={styles.dubbyCharacter} aria-hidden="true"><i /></span>
+      <p aria-live="polite">{greetings === 0 ? "Dubby에게 인사를 건네보세요." : greetings % 2 ? "안녕! 만나서 반가워요." : "다음엔 카드게임도 같이 해요!"}</p>
+    </div>
+    <button type="button" onClick={() => setGreetings((count) => count + 1)}>Dubby에게 인사하기</button>
+  </div>;
+}
 
 export function ProjectExploration() {
   const [progress, setProgress] = useState(0);
@@ -30,6 +71,7 @@ export function ProjectExploration() {
   const active = Math.round(progress * (stories.length - 1));
   const exhibit = stories[active];
   const preview = stories[selected];
+  const room = rooms[preview.id];
 
   useEffect(() => {
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -104,14 +146,33 @@ export function ProjectExploration() {
         </nav>
       </div>
     </div>
-    <dialog ref={dialog} className={styles.galleryDialog} aria-labelledby="project-preview-title">
-      <form method="dialog"><button type="submit" autoFocus>닫기 <span aria-hidden="true">×</span></button></form>
-      <Image src={preview.media} alt={`${preview.name} 제품 화면`} width={720} height={405} sizes="(max-width: 720px) 90vw, 640px" />
-      <h1 id="project-preview-title">{preview.name}</h1>
-      <p>{preview.text}</p>
-      <Link className={styles.textLink} href={`/projects/${preview.id}`}>프로젝트 자세히 보기 <span aria-hidden="true">↗</span></Link>
+    <dialog ref={dialog} className={styles.galleryDialog} data-room={room.theme} aria-labelledby="project-preview-title">
+      <div className={styles.roomAtmosphere} aria-hidden="true" />
+      <div className={styles.roomContent}>
+        <form method="dialog"><button type="submit" autoFocus>← 전시관으로 돌아가기</button></form>
+        <div className={styles.roomLayout}>
+          <div className={styles.roomCopy}>
+            <p className={styles.roomName}>{room.name}</p>
+            <h1 id="project-preview-title">{preview.name}</h1>
+            <p>{preview.text}</p>
+            {preview.id === "byeoljari" && <Observatory />}
+            {preview.id === "dubby" && <DubbyCharacter />}
+            <div className={styles.roomActions}>
+              <Link className={styles.textLink} href={`/projects/${preview.id}`}>프로젝트 자세히 보기 <span aria-hidden="true">↗</span></Link>
+              {"action" in room && (
+                <a className={styles.textLink} href="#report-experiment" onClick={() => dialog.current?.close()}>
+                  {room.action} <span aria-hidden="true">↓</span>
+                </a>
+              )}
+            </div>
+          </div>
+          <figure className={styles.roomDisplay}>
+            <Image src={preview.media} alt={`${preview.name} 제품 화면`} width={960} height={540} sizes="(max-width: 800px) 86vw, 52vw" />
+          </figure>
+        </div>
+      </div>
     </dialog>
- <div className={styles.stage}><div className={styles.storyContent}><div className={styles.chapterIntro}><p className={styles.eyebrow}>SELECTED WORK / 2025—2026</p><h2>문제와 해답 사이,<br /><em>제가 만든 것들.</em></h2><p>스크롤을 따라 세 가지 제품 이야기를 만나보세요.</p></div>{stories.map((story, index) => <section id={`story-${story.id}`} className={styles.story} key={story.id}><div className={styles.storyCopy}><span className={styles.storyNumber}>{story.number} <i>/ 03</i></span><p className={styles.eyebrow}>{story.label}</p><h2>{story.title}</h2><p>{story.text}</p><span className={styles.storyTags}>{story.tags}</span><Link className={styles.textLink} href={`/projects/${story.id}`}>프로젝트 자세히 보기 <span>↗</span></Link></div><Link href={`/projects/${story.id}`} className={styles.screen} aria-label={`${story.name} 상세 보기`}><div className={styles.screenBar}><span>● ● ●</span><span>{story.id}</span></div><div className={styles.screenImage} style={{ backgroundImage: `url('${story.media}')` }} /><div className={styles.screenCaption}><span>{story.label}</span><b>{story.number} / 03</b></div></Link>{index === 0 && <ReportDemo />}</section>)}</div></div>
+ <div className={styles.stage}><div className={styles.storyContent}><div className={styles.chapterIntro}><p className={styles.eyebrow}>SELECTED WORK / 2025—2026</p><h2>문제와 해답 사이,<br /><em>제가 만든 것들.</em></h2><p>스크롤을 따라 제품 이야기를 만나보세요.</p></div>{stories.map((story, index) => <section id={`story-${story.id}`} className={styles.story} key={story.id}><div className={styles.storyCopy}><span className={styles.storyNumber}>{story.number} <i>/ {String(stories.length).padStart(2, "0")}</i></span><p className={styles.eyebrow}>{story.label}</p><h2>{story.title}</h2><p>{story.text}</p><span className={styles.storyTags}>{story.tags}</span><Link className={styles.textLink} href={`/projects/${story.id}`}>프로젝트 자세히 보기 <span>↗</span></Link></div><Link href={`/projects/${story.id}`} className={styles.screen} aria-label={`${story.name} 상세 보기`}><div className={styles.screenBar}><span>● ● ●</span><span>{story.id}</span></div><div className={styles.screenImage} style={{ backgroundImage: `url('${story.media}')` }} /><div className={styles.screenCaption}><span>{story.label}</span><b>{story.number} / {String(stories.length).padStart(2, "0")}</b></div></Link>{index === 0 && <div id="report-experiment" className={styles.reportExperiment}><ReportDemo /></div>}</section>)}</div></div>
     <footer className={styles.exploreEnd}><Link href="/projects">전체 프로젝트 보기</Link></footer>
   </main>;
 }

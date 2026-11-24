@@ -14,7 +14,7 @@ type GalleryProps = {
 const frames = Array.from({ length: 16 }, (_, index) => ({
   z: -index * 3.8,
   width: index < 3 ? 4.9 : 5.8 + (index % 3) * 0.55,
-  color: index < 6 ? "#8882ff" : index < 11 ? "#63e8cc" : "#daa3ff",
+  color: exhibits[Math.min(exhibits.length - 1, Math.floor(index / 4))].color,
 }));
 
 function Gallery({ progress, active, marker }: GalleryProps) {
@@ -22,8 +22,8 @@ function Gallery({ progress, active, marker }: GalleryProps) {
   useFrame(({ camera }, delta) => {
     const speed = 1 - Math.exp(-8 * Math.min(delta, 0.1));
     const exhibit = exhibits[active];
-    const lane = Math.cos(progress * Math.PI * 2);
-    camera.position.z = MathUtils.lerp(camera.position.z, 4.8 - progress * 32, speed);
+    const lane = Math.cos(progress * Math.PI * (exhibits.length - 1));
+    camera.position.z = MathUtils.lerp(camera.position.z, 4.8 - progress * 16 * (exhibits.length - 1), speed);
     camera.position.x = MathUtils.lerp(camera.position.x, lane * 1.45, speed);
     camera.position.y = MathUtils.lerp(camera.position.y, 1.65 + progress * 0.8, speed);
     camera.lookAt(lane * 1.9, 2.3, camera.position.z - 9);
@@ -54,12 +54,14 @@ function Gallery({ progress, active, marker }: GalleryProps) {
             {index === 0 && <boxGeometry args={[3.7, 2.4, 0.35]} />}
             {index === 1 && <cylinderGeometry args={[1.55, 1.85, 2.4, 8]} />}
             {index === 2 && <cylinderGeometry args={[1.75, 1.95, 2.4, 48]} />}
+            {index === 3 && <boxGeometry args={[3.4, 2.25, 0.6]} />}
             <meshBasicMaterial color="#252141" />
           </mesh>
           <mesh position={[0, 2.45, 0.26]}>
             {index === 0 && <boxGeometry args={[3.85, 2.6, 0.14]} />}
             {index === 1 && <torusGeometry args={[1.75, 0.07, 8, 6]} />}
             {index === 2 && <torusGeometry args={[1.85, 0.07, 8, 48]} />}
+            {index === 3 && <ringGeometry args={[1.55, 1.63, 8]} />}
             <meshBasicMaterial color={color} wireframe={index === 0} />
           </mesh>
         </group>
