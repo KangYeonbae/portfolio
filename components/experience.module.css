@@ -132,3 +132,6 @@
 .exploreStops a { padding: .5rem .8rem; background: #181a32; border: 1px solid #777b9e; font-size: .875rem; }
 .exploreStops a:hover { background: #30275b; }
 .exploration .storyCopy { background: #101224e8; padding: clamp(1rem, 3vw, 2rem); }
+
+.exploration a.screen { display: block; }
+.exploration a.screen:hover { border-color: #b9afff; }
