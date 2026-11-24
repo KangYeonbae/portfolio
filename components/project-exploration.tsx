@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import Link from "next/link";
 import styles from "./experience.module.css";
 
@@ -21,19 +22,27 @@ const stories = [
 export function ProjectExploration() {
   const [progress, setProgress] = useState(0);
   const [reduced, setReduced] = useState(true);
+  const [selected, setSelected] = useState(0);
   const stage = useRef<HTMLDivElement>(null);
+  const viewport = useRef<HTMLDivElement>(null);
+  const marker = useRef<HTMLButtonElement>(null);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const active = Math.round(progress * (stories.length - 1));
+  const exhibit = stories[active];
+  const preview = stories[selected];
 
   useEffect(() => {
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
     let frame = 0;
     const update = () => {
-      if (frame || motion.matches) return;
+      if (frame) return;
       frame = requestAnimationFrame(() => {
         frame = 0;
         const element = stage.current;
-        if (!element) return;
+        if (!element || !viewport.current) return;
         const rect = element.getBoundingClientRect();
-        setProgress(Math.max(0, Math.min(1, -rect.top / Math.max(1, rect.height - window.innerHeight))));
+        const distance = rect.height - viewport.current.offsetHeight;
+        setProgress(Math.max(0, Math.min(1, -rect.top / Math.max(1, distance))));
       });
     };
     const syncMotion = () => {
@@ -52,12 +61,57 @@ export function ProjectExploration() {
     };
   }, []);
 
+  function goToExhibit(index: number) {
+    const section = stage.current;
+    if (!section || !viewport.current) return;
+    const start = section.getBoundingClientRect().top + window.scrollY;
+    const distance = section.offsetHeight - viewport.current.offsetHeight;
+    window.scrollTo({
+      top: start + distance * index / (stories.length - 1),
+      behavior: reduced ? "instant" : "smooth",
+    });
+  }
+
+  function openPreview() {
+    setSelected(active);
+    dialog.current?.showModal();
+  }
+
   return <main className={styles.exploration}>
     <header className={styles.exploreNav}>
       <Link href="/">홈으로 돌아가기</Link>
       <Link href="/projects">전체 프로젝트 보기</Link>
     </header>
- <div ref={stage} id="work" className={styles.stage}><div className={styles.scene} aria-hidden="true">{!reduced && <Scene progress={progress} />}</div><div className={styles.storyContent}><div className={styles.chapterIntro}><p className={styles.eyebrow}>SELECTED WORK / 2025—2026</p><h2>문제와 해답 사이,<br /><em>제가 만든 것들.</em></h2><p>스크롤을 따라 세 가지 제품 이야기를 만나보세요.</p></div>{stories.map((story, index) => <section id={`story-${story.id}`} className={styles.story} key={story.id}><div className={styles.storyCopy}><span className={styles.storyNumber}>{story.number} <i>/ 03</i></span><p className={styles.eyebrow}>{story.label}</p><h2>{story.title}</h2><p>{story.text}</p><span className={styles.storyTags}>{story.tags}</span><Link className={styles.textLink} href={`/projects/${story.id}`}>프로젝트 자세히 보기 <span>↗</span></Link></div><Link href={`/projects/${story.id}`} className={styles.screen} aria-label={`${story.name} 상세 보기`}><div className={styles.screenBar}><span>● ● ●</span><span>{story.id}</span></div><div className={styles.screenImage} style={{ backgroundImage: `url('${story.media}')` }} /><div className={styles.screenCaption}><span>{story.label}</span><b>{story.number} / 03</b></div></Link>{index === 0 && <ReportDemo />}</section>)}</div></div>
+    <div ref={stage} id="work" className={styles.galleryTrack}>
+      <div ref={viewport} className={styles.galleryViewport}>
+        <div className={styles.galleryCanvas} aria-hidden="true">
+          {!reduced && <Scene progress={progress} active={active} marker={marker} />}
+        </div>
+        <div className={styles.galleryIntro}>
+          <h1>프로젝트 전시관</h1>
+          <p>스크롤하거나 화살표로 이동하세요.</p>
+        </div>
+        <button ref={marker} type="button" className={styles.galleryMarker}
+          aria-haspopup="dialog" onClick={openPreview}>
+          <Image src={exhibit.media} alt="" width={192} height={108} sizes="(max-width: 640px) 38vw, 192px" />
+          <span>{exhibit.name}</span>
+          <span className={styles.galleryOpen}>프로젝트 보기 <span aria-hidden="true">↗</span></span>
+        </button>
+        <nav className={styles.galleryControls} aria-label="전시관 이동">
+          <button type="button" disabled={active === 0} onClick={() => goToExhibit(active - 1)} aria-label="이전 프로젝트">←</button>
+          <span>{active + 1} / {stories.length}</span>
+          <button type="button" disabled={active === stories.length - 1} onClick={() => goToExhibit(active + 1)} aria-label="다음 프로젝트">→</button>
+        </nav>
+      </div>
+    </div>
+    <dialog ref={dialog} className={styles.galleryDialog} aria-labelledby="project-preview-title">
+      <form method="dialog"><button type="submit" autoFocus>닫기 <span aria-hidden="true">×</span></button></form>
+      <Image src={preview.media} alt={`${preview.name} 제품 화면`} width={720} height={405} sizes="(max-width: 720px) 90vw, 640px" />
+      <h1 id="project-preview-title">{preview.name}</h1>
+      <p>{preview.text}</p>
+      <Link className={styles.textLink} href={`/projects/${preview.id}`}>프로젝트 자세히 보기 <span aria-hidden="true">↗</span></Link>
+    </dialog>
+ <div className={styles.stage}><div className={styles.storyContent}><div className={styles.chapterIntro}><p className={styles.eyebrow}>SELECTED WORK / 2025—2026</p><h2>문제와 해답 사이,<br /><em>제가 만든 것들.</em></h2><p>스크롤을 따라 세 가지 제품 이야기를 만나보세요.</p></div>{stories.map((story, index) => <section id={`story-${story.id}`} className={styles.story} key={story.id}><div className={styles.storyCopy}><span className={styles.storyNumber}>{story.number} <i>/ 03</i></span><p className={styles.eyebrow}>{story.label}</p><h2>{story.title}</h2><p>{story.text}</p><span className={styles.storyTags}>{story.tags}</span><Link className={styles.textLink} href={`/projects/${story.id}`}>프로젝트 자세히 보기 <span>↗</span></Link></div><Link href={`/projects/${story.id}`} className={styles.screen} aria-label={`${story.name} 상세 보기`}><div className={styles.screenBar}><span>● ● ●</span><span>{story.id}</span></div><div className={styles.screenImage} style={{ backgroundImage: `url('${story.media}')` }} /><div className={styles.screenCaption}><span>{story.label}</span><b>{story.number} / 03</b></div></Link>{index === 0 && <ReportDemo />}</section>)}</div></div>
     <footer className={styles.exploreEnd}><Link href="/projects">전체 프로젝트 보기</Link></footer>
   </main>;
 }

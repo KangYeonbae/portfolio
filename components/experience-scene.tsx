@@ -1,7 +1,15 @@
 ﻿"use client";
 
 import { Canvas, useFrame } from "@react-three/fiber";
-import { MathUtils } from "three";
+import { useMemo, type RefObject } from "react";
+import { MathUtils, Vector3 } from "three";
+import { exhibits } from "./gallery-layout";
+
+type GalleryProps = {
+  progress: number;
+  active: number;
+  marker: RefObject<HTMLButtonElement | null>;
+};
 
 const frames = Array.from({ length: 16 }, (_, index) => ({
   z: -index * 3.8,
@@ -9,13 +17,24 @@ const frames = Array.from({ length: 16 }, (_, index) => ({
   color: index < 6 ? "#8882ff" : index < 11 ? "#63e8cc" : "#daa3ff",
 }));
 
-function Gallery({ progress }: { progress: number }) {
+function Gallery({ progress, active, marker }: GalleryProps) {
+  const point = useMemo(() => new Vector3(), []);
   useFrame(({ camera }, delta) => {
-    const speed = 1 - Math.exp(-7 * Math.min(delta, 0.1));
-    camera.position.z = MathUtils.lerp(camera.position.z, 5 - progress * 55, speed);
-    camera.position.x = MathUtils.lerp(camera.position.x, Math.sin(progress * Math.PI * 3) * 1.5, speed);
-    camera.position.y = MathUtils.lerp(camera.position.y, 1.55 + Math.sin(progress * Math.PI) * 0.6, speed);
-    camera.lookAt(0.55, 2.15, camera.position.z - 10);
+    const speed = 1 - Math.exp(-8 * Math.min(delta, 0.1));
+    const exhibit = exhibits[active];
+    const lane = Math.cos(progress * Math.PI * 2);
+    camera.position.z = MathUtils.lerp(camera.position.z, 4.8 - progress * 32, speed);
+    camera.position.x = MathUtils.lerp(camera.position.x, lane * 1.45, speed);
+    camera.position.y = MathUtils.lerp(camera.position.y, 1.65 + progress * 0.8, speed);
+    camera.lookAt(lane * 1.9, 2.3, camera.position.z - 9);
+    camera.updateMatrixWorld();
+
+    const button = marker.current;
+    if (button) {
+      point.set(exhibit.x, 2.45, exhibit.z + 0.42).project(camera);
+      button.style.setProperty("--marker-x", `${MathUtils.clamp((point.x + 1) * 50, 24, 76)}%`);
+      button.style.setProperty("--marker-y", `${MathUtils.clamp((1 - point.y) * 50, 32, 65)}%`);
+    }
   });
 
   return (
@@ -25,6 +44,26 @@ function Gallery({ progress }: { progress: number }) {
         <boxGeometry args={[19, 0.15, 72]} />
         <meshBasicMaterial color="#11152f" />
       </mesh>
+      {exhibits.map(({ x, z, color }, index) => (
+        <group key={z} position={[x, 0, z]}>
+          <mesh position={[0, 0.15, 0]}>
+            <boxGeometry args={[4.3, 0.25, 3.4]} />
+            <meshBasicMaterial color="#262945" />
+          </mesh>
+          <mesh position={[0, 1.35, 0]}>
+            {index === 0 && <boxGeometry args={[3.7, 2.4, 0.35]} />}
+            {index === 1 && <cylinderGeometry args={[1.55, 1.85, 2.4, 8]} />}
+            {index === 2 && <cylinderGeometry args={[1.75, 1.95, 2.4, 48]} />}
+            <meshBasicMaterial color="#252141" />
+          </mesh>
+          <mesh position={[0, 2.45, 0.26]}>
+            {index === 0 && <boxGeometry args={[3.85, 2.6, 0.14]} />}
+            {index === 1 && <torusGeometry args={[1.75, 0.07, 8, 6]} />}
+            {index === 2 && <torusGeometry args={[1.85, 0.07, 8, 48]} />}
+            <meshBasicMaterial color={color} wireframe={index === 0} />
+          </mesh>
+        </group>
+      ))}
       {frames.map(({ z, width, color }, index) => (
         <group key={z} position={[0, 0, z]}>
           {[-1, 1].map((side) => (
@@ -57,7 +96,7 @@ function Gallery({ progress }: { progress: number }) {
   );
 }
 
-export default function Scene({ progress }: { progress: number }) {
+export default function Scene(props: GalleryProps) {
   return (
     <Canvas
       camera={{ position: [0, 1.55, 5], fov: 63 }}
@@ -65,7 +104,7 @@ export default function Scene({ progress }: { progress: number }) {
       dpr={[1, 1.5]}
       fallback={null}
     >
-      <Gallery progress={progress} />
+      <Gallery {...props} />
     </Canvas>
   );
 }

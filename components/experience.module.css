@@ -30,9 +30,10 @@
   pointer-events: none;
 }
 
-@media (any-hover: hover) and (any-pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .portraitAngle { transition: opacity 190ms ease-in-out; }
-  .portraitAngle[data-active="true"][data-ready="true"] { opacity: 1; }
+.portraitFrame[data-following="true"] .portraitAngle[data-active="true"][data-ready="true"] { opacity: 1; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .portraitFrame[data-following="true"] .portraitAngle { transition: opacity 190ms ease-in-out; }
 }
 
 .portraitMorph {
@@ -44,9 +45,7 @@
   pointer-events: none;
 }
 
-@media (any-hover: hover) and (any-pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .portraitFrame[data-following="true"] .portraitMorph[data-ready="true"] { opacity: 1; }
-}
+.portraitFrame[data-following="true"] .portraitMorph[data-ready="true"] { opacity: 1; }
 
 .portraitCaption {
   display: grid;
@@ -58,12 +57,7 @@
   text-align: center;
 }
 
-.portraitToggle { display: none; }
-
-@media (any-hover: hover) and (any-pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .portraitFrame[data-following="false"] .portraitAngle { transition: none; }
-
-  .portraitToggle {
+.portraitToggle {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -100,7 +94,6 @@
 
   .portraitToggle[aria-pressed="true"] .toggleTrack { background: #6557df; }
   .portraitToggle[aria-pressed="true"] .toggleTrack::before { transform: translateX(12px); }
-}
 
 @media (max-width: 800px) {
   .portraitArea { width: 190px; }
@@ -135,3 +128,75 @@
 
 .exploration a.screen { display: block; }
 .exploration a.screen:hover { border-color: #b9afff; }
+
+.galleryTrack { min-height: 300svh; }
+.galleryViewport {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  isolation: isolate;
+  background: radial-gradient(ellipse at 65% 55%, #30294f, #101224 75%);
+}
+.galleryCanvas { position: absolute; inset: 0; pointer-events: none; z-index: -1; }
+.galleryIntro { position: absolute; top: 7%; left: 6%; }
+.galleryIntro h1 { margin: 0 0 .5rem; font-size: clamp(1.8rem, 4vw, 3.5rem); }
+.galleryIntro p { margin: 0; color: #d5d4e3; }
+.galleryMarker {
+  position: absolute;
+  left: var(--marker-x, 64%);
+  top: var(--marker-y, 48%);
+  transform: translate(-50%, -50%);
+  display: grid;
+  gap: .55rem;
+  width: min(38vw, 13.5rem);
+  padding: .65rem;
+  text-align: left;
+  background: #181a31;
+  color: #fff;
+  border: 1px solid #aaa4ff;
+  box-shadow: 0 0 1.5rem #7862d466;
+  cursor: pointer;
+}
+.galleryMarker:hover { background: #322758; }
+.galleryMarker img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: contain; background: #f5f4fa; }
+.galleryMarker > span { font-size: .875rem; overflow-wrap: anywhere; }
+.galleryOpen { display: flex; justify-content: space-between; gap: .25rem; color: #d4cdff; }
+.galleryControls {
+  position: absolute;
+  bottom: 6%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  white-space: nowrap;
+  padding: .35rem;
+  background: #13152c;
+  border: 1px solid #55567b;
+}
+.galleryControls button, .galleryDialog button {
+  min-width: 44px;
+  min-height: 44px;
+  background: #262949;
+  border: 1px solid #62668f;
+  color: #fff;
+  cursor: pointer;
+}
+.galleryControls button:disabled { opacity: .5; cursor: default; }
+.galleryControls button:hover:enabled, .galleryDialog button:hover { background: #473873; }
+.galleryViewport button:focus-visible, .galleryDialog :focus-visible { outline: 2px solid #c2baff; outline-offset: 3px; }
+.galleryDialog {
+  box-sizing: border-box;
+  max-width: min(90vw, 42rem);
+  max-height: 90svh;
+  padding: clamp(1rem, 3vw, 2rem);
+  border: 1px solid #8379b5;
+  color: #fff;
+  background: #181a31;
+}
+.galleryDialog:modal { overscroll-behavior: contain; }
+.galleryDialog::backdrop { background: #090a17d9; overflow: hidden; overscroll-behavior: contain; }
+.galleryDialog form { display: flex; justify-content: flex-end; margin: 0 0 1rem; }
+.galleryDialog button { padding: 0 .75rem; }
+.galleryDialog img { display: block; width: 100%; height: auto; max-height: 42svh; object-fit: contain; background: #faf9ff; }
+.galleryDialog p { color: #dddbea; line-height: 1.7; }

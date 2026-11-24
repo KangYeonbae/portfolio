@@ -1,13 +1,23 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import upwardPortrait from "@/public/portrait/gaze-up.png";
 import type { createPortraitMorph } from "./portrait-morph";
 import styles from "./experience.module.css";
 
 const sizes = "(max-width: 800px) 190px, 320px";
-const motionQuery = "(any-hover: hover) and (any-pointer: fine) and (prefers-reduced-motion: no-preference)";
+const motionQuery = "(prefers-reduced-motion: reduce)";
+
+function subscribeToMotionPreference(onChange: () => void) {
+  const preference = window.matchMedia(motionQuery);
+  preference.addEventListener("change", onChange);
+  return () => preference.removeEventListener("change", onChange);
+}
+
+function prefersReducedMotion() {
+  return window.matchMedia(motionQuery).matches;
+}
 const poses = [
   ["up-left", "up", "up-right"],
   ["left", "center", "right"],
@@ -30,7 +40,9 @@ export function InteractivePortrait() {
   const gaze = useRef({ x: 0, y: 0 });
   const [pose, setPose] = useState<Pose>("center");
   const [loadAngles, setLoadAngles] = useState(false);
-  const [following, setFollowing] = useState(true);
+  const [followingOverride, setFollowingOverride] = useState<boolean | null>(null);
+  const reducedMotion = useSyncExternalStore(subscribeToMotionPreference, prefersReducedMotion, () => true);
+  const following = followingOverride ?? !reducedMotion;
   const [morphReady, setMorphReady] = useState(false);
 
   useEffect(() => {
@@ -93,7 +105,6 @@ export function InteractivePortrait() {
     const portrait = frameRef.current;
     if (!portrait || !following) return;
 
-    const motion = window.matchMedia(motionQuery);
     let visible = false;
     let started = false;
     let pointer: { x: number; y: number } | null = null;
@@ -134,14 +145,14 @@ export function InteractivePortrait() {
     }
 
     function syncGaze() {
-      if (!portrait || !pointer || !visible || !motion.matches) return;
+      if (!portrait || !pointer || !visible) return;
       const { left, top, width, height } = portrait.getBoundingClientRect();
       // Aim from eye level in the photo, even when the pointer is over the page copy.
       aimAt((pointer.x - left - width / 2) / (width * 0.8), (pointer.y - top - height * 0.36) / (height * 0.65));
     }
 
     function followPointer(event: PointerEvent) {
-      if (!visible || !motion.matches || event.pointerType !== "mouse") return;
+      if (!visible || event.pointerType !== "mouse") return;
       if (!started) {
         started = true;
         setLoadAngles(true);
@@ -153,7 +164,7 @@ export function InteractivePortrait() {
     function leaveWindow(event: PointerEvent) {
       if (event.relatedTarget !== null) return;
       pointer = null;
-      if (visible && motion.matches) aimAt(0, 0);
+      if (visible) aimAt(0, 0);
     }
 
     function reset() {
@@ -177,14 +188,12 @@ export function InteractivePortrait() {
     window.addEventListener("pointerout", leaveWindow);
     window.addEventListener("scroll", syncGaze, { passive: true });
     window.addEventListener("blur", reset);
-    motion.addEventListener("change", reset);
     return () => {
       observer.disconnect();
       window.removeEventListener("pointermove", followPointer);
       window.removeEventListener("pointerout", leaveWindow);
       window.removeEventListener("scroll", syncGaze);
       window.removeEventListener("blur", reset);
-      motion.removeEventListener("change", reset);
       cancelAnimationFrame(animation);
     };
   }, [following]);
@@ -237,7 +246,7 @@ export function InteractivePortrait() {
               gaze.current = { x: 0, y: 0 };
               morph.current?.draw(0, 0);
             }
-            setFollowing(!following);
+            setFollowingOverride(!following);
           }}
         >
           <span className={styles.toggleTrack} aria-hidden="true" />
