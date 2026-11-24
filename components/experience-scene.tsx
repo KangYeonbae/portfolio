@@ -30,17 +30,17 @@ function Panel({ position, size, color, roughness = .8 }: {
 
 // Soft indirect light so surfaces read as materials instead of flat colour fills.
 function Environment() {
-  const { gl, scene } = useThree();
+  const get = useThree((state) => state.get);
   useEffect(() => {
+    const { gl, scene } = get();
     const pmrem = new PMREMGenerator(gl);
     const room = new RoomEnvironment();
     const target = pmrem.fromScene(room, .04);
     scene.environment = target.texture;
-    scene.environmentIntensity = .45;
     room.dispose();
     pmrem.dispose();
     return () => { scene.environment = null; target.dispose(); };
-  }, [gl, scene]);
+  }, [get]);
   return null;
 }
 
@@ -244,7 +244,6 @@ function Gallery({ progress, images, onOpen, onReady }: GalleryProps) {
           <Panel position={[-5.73, .84, -2]} size={[.44, .08, 4]} color="#b89a7a" roughness={.6} />
           <Panel position={[-5.8, 3.53, -2]} size={[.1, .055, 4]} color="#cabba9" />
           <Panel position={[-5.8, 2.83, -2]} size={[.1, 3.93, .045]} color="#cabba9" />
-          <Panel position={[0, 5.27, 0]} size={[12, .16, .3]} color="#efe5d8" roughness={.9} />
           {index % 2 === 1 && (
             <mesh position={[1.65, 5.34, -1]} rotation={[Math.PI / 2, 0, 0]}>
               <planeGeometry args={[1.2, .7]} />
@@ -299,6 +298,7 @@ export default function Scene(props: GalleryProps) {
     <Canvas
       camera={{ position: [0, 2.9, 3.2], fov: 61 }}
       shadows="percentage"
+      scene={{ environmentIntensity: .45 }}
       gl={{ antialias: true, powerPreference: "low-power" }}
       dpr={[1, 1.5]}
       fallback={null}

@@ -15,22 +15,16 @@
   pointer-events: none;
   background: radial-gradient(ellipse at 74% 36%, #182345 0%, #080e22 47%, #050916 82%);
 }
-.backdrop::before, .backdrop::after { content: ""; position: absolute; inset: 0; }
-.backdrop::before {
-  background: radial-gradient(circle, #eef0ff9c 0 1px, transparent 1.5px) 2px 11px / 137px 105px,
-    radial-gradient(circle, #b4cbf67a 0 1px, transparent 1.4px) 23px 58px / 193px 227px,
-    radial-gradient(circle, #d4cdef57 0 1px, transparent 1.4px) 61px 31px / 83px 121px;
-  opacity: .28;
-}
-.backdrop::after { background: linear-gradient(115deg, #070b19b5, transparent 63%), linear-gradient(0deg, #050815d6, transparent 46%); }
+.backdrop::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, #070b19a6, transparent 55%); }
 .top, .layout { width: min(90%, 75rem); margin: auto; }
 .top { padding-top: 1.35rem; }
 .top form { justify-content: flex-start; }
-.room button { background: #1a1732; border: 1px solid #ad8f62; color: #fff2e2; }
-.room button:hover, .room button[aria-pressed="true"] { background: #46334f; border-color: var(--gold); }
-.layout { min-height: 77svh; display: grid; grid-template-columns: .85fr 1.15fr; align-items: center; gap: clamp(1.5rem, 5vw, 4.25rem); padding: 1rem 0 2.5rem; }
-.intro > p { margin: 0; color: var(--gold); font: 1.1rem Georgia, serif; letter-spacing: .06em; }
-.intro h1 { margin: .75rem 0 1.8rem; font: 700 clamp(2.6rem, 6vw, 5.5rem)/1.07 Georgia, "Malgun Gothic", serif; letter-spacing: -.055em; }
+.room button { background: #ffffff0d; border: 1px solid #ffffff24; border-radius: .7rem; color: #f3f1fb; transition: background .2s, border-color .2s; }
+.room button:hover, .room button[aria-pressed="true"] { background: #ffffff1c; border-color: #f2cc92a6; }
+.skipHint { position: absolute; left: 50%; bottom: 2.2rem; transform: translateX(-50%); margin: 0; color: #c9cde4; font-size: .78rem; letter-spacing: .08em; }
+.layout { min-height: 77svh; display: grid; grid-template-areas: "stage"; place-items: center; padding: 1rem 0 2.5rem; }
+.intro > p { margin: 0; color: var(--gold); font: 600 .78rem/1 ui-monospace, monospace; letter-spacing: .32em; text-transform: uppercase; }
+.intro h1 { margin: 1rem 0 2rem; font-size: clamp(2.6rem, 5.6vw, 5rem); font-weight: 700; line-height: 1.07; letter-spacing: -.06em; text-shadow: 0 0 2.5rem #8ea2ff40; }
 .instruments { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(.35rem, 1.6vw, 1rem); max-width: 25rem; }
 .instruments button, .instruments button:hover, .instruments button[aria-pressed="true"] {
   display: grid;
@@ -50,17 +44,16 @@
   aspect-ratio: 1;
   margin-bottom: .6rem;
   border-radius: 50%;
-  border: 1px solid #c9b5dc66;
-  background: radial-gradient(circle at 36% 28%, #cbd3ff30, #32364c44 65%);
-  box-shadow: inset 0 0 0 .3rem #11162b65;
-  color: #ded9f8;
-  font: 1.75rem Georgia, serif;
+  border: 1px solid #ffffff2b;
+  background: #ffffff0a;
+  backdrop-filter: blur(8px);
+  color: #e6e8f7;
+  font: 1.6rem Georgia, serif;
+  transition: border-color .2s, box-shadow .2s, color .2s;
 }
-.instruments button[data-instrument="saju"] .instrumentIcon { background-color: #6b594838; }
-.instruments button[data-instrument="tarot"] .instrumentIcon { background-color: #664e743f; }
 .instruments button:hover .instrumentIcon, .instruments button[aria-pressed="true"] .instrumentIcon {
-  border-color: #f2cc92;
-  box-shadow: 0 0 1.4rem #ddbc8845, inset 0 0 0 .3rem #6752734d;
+  border-color: #f2cc92c0;
+  box-shadow: 0 0 1.6rem #f2cc9238;
   color: #ffe5b5;
 }
 .instruments button strong, .instruments button small { display: block; }
@@ -68,10 +61,10 @@
 .instruments button small { margin-top: .32rem; color: #d3cade; font-size: .72rem; line-height: 1.4; word-break: keep-all; }
 .links { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem 1.2rem; margin-top: 1rem; }
 .links a { display: inline-flex; align-items: center; min-height: 44px; text-decoration: underline; text-underline-offset: .3em; font-size: .9rem; }
-.workbench { text-align: center; padding: clamp(1rem, 4vw, 2.4rem); border: 1px solid #aeb6dc4a; border-radius: 1.8rem; background: #0d142bc2; backdrop-filter: blur(4px); box-shadow: 0 1.75rem 5rem #07091970; }
+.workbench { text-align: center; padding: clamp(1rem, 4vw, 2.4rem); border: 1px solid #ffffff1f; border-radius: 1.5rem; background: linear-gradient(160deg, #ffffff14, #ffffff05 60%), #0a10248c; backdrop-filter: blur(16px); box-shadow: 0 1.75rem 5rem #0306128a; }
 .workbench h2 { margin: 0 0 1.3rem; font-size: clamp(1.45rem, 3vw, 2.2rem); letter-spacing: -.035em; }
 .workbench .sample { margin: .8rem 0 0; color: #d0bacb; font-size: .76rem; }
-.pillars, .cards { display: grid; gap: clamp(.24rem, 1.5vw, .65rem); }
+.pillars { display: grid; gap: clamp(.24rem, 1.5vw, .65rem); }
 .pillars { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .pillars button { padding: .6rem .1rem; display: grid; justify-items: center; gap: .45rem; }
 .pillars strong { font: 700 clamp(.9rem, 3vw, 1.8rem) Georgia, serif; color: var(--gold); white-space: nowrap; }
@@ -87,43 +80,76 @@
 .chart button:nth-child(1) { top: 11%; left: 44%; }
 .chart button:nth-child(2) { top: 50%; right: 10%; }
 .chart button:nth-child(3) { bottom: 22%; left: 12%; }
-.cards { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 23rem; margin: auto; }
-.cards .card {
-  position: relative; display: grid; place-items: center; aspect-ratio: 2 / 3.2;
-  padding: 0; overflow: hidden; min-width: 0; border-radius: .45rem;
-  color: var(--gold); background: radial-gradient(ellipse at 50% 40%, #3b2b52, #10172e 75%); font: 2rem Georgia, serif;
+/* Stage: the observatory intro and the chosen tool share one centred cell. */
+.layout > * { grid-area: stage; }
+.intro { display: grid; justify-items: center; text-align: center; }
+.intro .instruments { margin: 0 auto; }
+.intro .links { justify-content: center; }
+.intro[data-hidden="true"] { opacity: 0; transform: translateY(-1.2rem) scale(.97); pointer-events: none; }
+.stage { width: 100%; display: grid; justify-items: center; gap: 1.2rem; outline: none; }
+.stageBack { justify-self: start; padding: .55rem 1rem; font-size: .85rem; }
+.stage > .workbench { width: min(100%, 40rem); }
+
+/* Tarot: choose → flip → read */
+.tarot { --card: clamp(6.4rem, 22vw, 10rem); --gap: clamp(.7rem, 2.4vw, 1.6rem); position: relative; width: 100%; display: grid; justify-items: center; gap: 1.4rem; padding-block: 1.6rem; }
+.cards { display: flex; gap: var(--gap); perspective: 1400px; }
+.room .cards .card, .room .cards .card:hover {
+  position: relative; width: var(--card); aspect-ratio: 2 / 3.2; padding: 0;
+  border: 0; border-radius: .6rem; background: none; cursor: pointer;
+  transition: transform .9s cubic-bezier(.2, .7, .2, 1), opacity .45s ease-out, filter .3s;
 }
-.card::before { content: ""; position: absolute; inset: 6%; border: 3px double #c9a86dbe; border-radius: .45rem; pointer-events: none; }
-.cardBack { position: relative; display: grid; place-items: center; width: 78%; height: 84%; }
-.cardBack::before, .cardBack::after { content: ""; position: absolute; border: 1px solid #f3c77b93; pointer-events: none; }
-.cardBack::before { width: 70%; aspect-ratio: 1; transform: rotate(45deg); border-radius: 17%; }
-.cardBack::after { width: 85%; aspect-ratio: 1; border-radius: 50%; }
-.cardBack b { font: 400 clamp(1.5rem, 4vw, 2.65rem) Georgia, serif; text-shadow: 0 0 .65rem #f5bb70a1; }
-.cardBack i {
-  position: absolute;
-  width: 17%;
-  aspect-ratio: 1;
-  background: #eec788aa;
+.tarot[data-phase="choose"] .card:hover { transform: translateY(-.5rem); filter: drop-shadow(0 0 1.2rem #f2cc9255); }
+.card:disabled { cursor: default; }
+.cardInner { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .9s cubic-bezier(.3, .7, .2, 1) .4s; }
+.cardBack, .cardFront { position: absolute; inset: 0; display: grid; place-items: center; overflow: hidden; border-radius: .6rem; backface-visibility: hidden; box-shadow: 0 1.2rem 3rem #02040d99; }
+.cardBack { color: var(--gold); background: radial-gradient(ellipse at 50% 40%, #3b2b52, #10172e 75%); }
+.cardBack::before { content: ""; position: absolute; inset: 6%; border: 1px solid #f2cc9259; border-radius: .35rem; }
+.cardFront { transform: rotateY(180deg); background: #1a1638; }
+.cardFront img { object-fit: contain; }
+.card[data-chosen="true"] .cardInner { transform: rotateY(180deg); }
+.tarot:not([data-phase="choose"]) .card[data-chosen="false"] { opacity: 0; transform: translateY(1.5rem) scale(.9); }
+.tarot:not([data-phase="choose"]) .card[data-chosen="true"] { z-index: 1; transform: translateX(calc(var(--shift) * (var(--card) + var(--gap)))) scale(1.15); }
+.tarot[data-phase="read"] .card[data-chosen="true"] { transform: translateX(calc(var(--shift) * (var(--card) + var(--gap)) - 10rem)) scale(1.15); cursor: default; }
+.cardMotif { position: relative; display: grid; place-items: center; width: 78%; height: 84%; }
+.cardMotif::before, .cardMotif::after { content: ""; position: absolute; border: 1px solid #f3c77b93; pointer-events: none; }
+.cardMotif::before { width: 70%; aspect-ratio: 1; transform: rotate(45deg); border-radius: 17%; }
+.cardMotif::after { width: 85%; aspect-ratio: 1; border-radius: 50%; }
+.cardMotif b { font: 400 clamp(1.5rem, 4vw, 2.65rem) Georgia, serif; text-shadow: 0 0 .65rem #f5bb70a1; }
+.cardMotif i {
+  position: absolute; width: 17%; aspect-ratio: 1; background: #eec788aa;
   clip-path: polygon(50% 0, 60% 39%, 100% 50%, 60% 61%, 50% 100%, 38% 61%, 0 50%, 38% 39%);
 }
-.cardBack i:first-child { top: 6%; }
-.cardBack i:last-child { bottom: 6%; }
-.cards .cardFace { object-fit: contain; max-height: none; background: #1a1638; }
+.cardMotif i:first-child { top: 6%; }
+.cardMotif i:last-child { bottom: 6%; }
+.hint { margin: .4rem 0 0; color: #c9cde4; font-size: .9rem; letter-spacing: .02em; }
+.tarot[data-phase="read"] .hint { visibility: hidden; }
+.reading { position: absolute; top: 50%; left: calc(50% - .5rem); width: min(24rem, 44%); transform: translateY(-50%); text-align: left; }
+.readingLabel { margin: 0; color: var(--gold); font: 600 .78rem/1 ui-monospace, monospace; letter-spacing: .32em; }
+.reading h2 { margin: .8rem 0 1rem; font-size: clamp(2.2rem, 4.5vw, 3.6rem); line-height: 1.05; letter-spacing: -.05em; }
+.reading > p:not(.readingLabel, .sample) { margin: 0 0 1.6rem; color: #e4e2f2; font-size: 1.02rem; line-height: 1.75; word-break: keep-all; }
+.reading button { padding: .65rem 1.2rem; }
+.reading .sample { margin: 1rem 0 0; color: #b9b3cb; font-size: .76rem; }
 .result { min-height: 4rem; margin: 1rem 0 0; color: #f1e2d7; line-height: 1.55; }
 .result p { margin: .35rem 0 0; }
-.reset { margin-top: .6rem; }
+.layout[data-revealed="false"] .intro { opacity: 0; pointer-events: none; }
+.layout[data-revealed="false"] .intro:focus-within { opacity: 1; pointer-events: auto; }
 .credits { width: min(90%, 75rem); margin: auto; padding: 0 0 1.1rem; color: #c9c4d8; font-size: .78rem; }
 .credits a { text-decoration: underline; text-underline-offset: .25em; }
 @media (max-width: 790px) {
-  .layout { grid-template-columns: 1fr; align-content: start; }
   .instruments { max-width: 22rem; }
   .instrumentIcon { font-size: 1.35rem; }
   .instruments button small { display: none; }
+  .tarot[data-phase="read"] .card[data-chosen="true"] { transform: translateX(calc(var(--shift) * (var(--card) + var(--gap)))) scale(1.15); }
+  .reading { position: static; width: min(100%, 26rem); transform: none; text-align: center; }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .cardFace { animation: card-reveal .38s ease-out both; }
-  .layout { animation: observatory-reveal .62s .82s ease-out both; }
-  .layout:focus-within { animation: none; }
-  @keyframes observatory-reveal { from { opacity: 0; transform: translateY(1.15rem); } }
-  @keyframes card-reveal { from { opacity: 0; transform: rotateY(-75deg); } }
+  .intro { transition: opacity .7s ease-out, transform .8s cubic-bezier(.2, .7, .2, 1); }
+  .layout[data-revealed="false"] .intro { transform: translateY(1.6rem) scale(.98); }
+  .stage { animation: stage-in .7s .35s ease-out both; }
+  .reading { animation: reading-in .7s .5s ease-out both; }
+  @keyframes stage-in { from { opacity: 0; transform: translateY(1rem); } }
+  @keyframes reading-in { from { opacity: 0; translate: 2rem 0; } }
+}
+@media (prefers-reduced-motion: reduce) {
+  .room .cards .card, .cardInner { transition: none; }
 }

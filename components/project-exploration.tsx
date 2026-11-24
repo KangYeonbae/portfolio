@@ -64,13 +64,34 @@ export function ProjectExploration() {
       setReduced(motion.matches);
       update();
     };
+    // Settle on an exhibit after each scroll gesture, moving one stop in the scroll direction.
+    let resting = 0;
+    const settle = () => {
+      const element = stage.current;
+      if (!element || !viewport.current) return;
+      const distance = element.offsetHeight - viewport.current.offsetHeight;
+      const raw = -element.getBoundingClientRect().top / Math.max(1, distance);
+      if (raw <= 0 || raw >= 1) return; // outside the gallery: leave normal page scrolling alone
+      const position = raw * (stories.length - 1);
+      if (Math.abs(position - Math.round(position)) < .02) {
+        resting = Math.round(position);
+        return;
+      }
+      resting = position > resting ? Math.ceil(position) : Math.floor(position);
+      window.scrollTo({
+        top: element.getBoundingClientRect().top + window.scrollY + distance * resting / (stories.length - 1),
+        behavior: motion.matches ? "instant" : "smooth",
+      });
+    };
     syncMotion();
     motion.addEventListener("change", syncMotion);
     window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("scrollend", settle);
     window.addEventListener("resize", update);
     return () => {
       motion.removeEventListener("change", syncMotion);
       window.removeEventListener("scroll", update);
+      window.removeEventListener("scrollend", settle);
       window.removeEventListener("resize", update);
       cancelAnimationFrame(frame);
     };

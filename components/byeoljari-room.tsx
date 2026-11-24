@@ -3,7 +3,8 @@
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { flushSync } from "react-dom";
 import styles from "./byeoljari-room.module.css";
 
 const ObservatorySky = dynamic(() => import("./observatory-sky"), { ssr: false });
@@ -61,48 +62,82 @@ function Astrology() {
 
 function Tarot() {
   const [picked, setPicked] = useState<number | null>(null);
+  const [reading, setReading] = useState(false);
   const [offset, setOffset] = useState(0);
   const result = picked === null ? null : cards[(picked + offset) % cards.length];
-  return <>
-    <h2>오늘의 카드</h2>
+  // choose: three cards → flip: the others leave, the pick turns over → read: card slides left, reading on the right.
+  const phase = picked === null ? "choose" : reading ? "read" : "flip";
+  return <div className={styles.tarot} data-phase={phase}>
     <div className={styles.cards} role="group" aria-label="타로 카드 세 장">
-      {cards.map((_, index) => (
-        <button key={index} type="button" className={styles.card}
-          aria-label={picked === index ? `${result?.name} 카드` : `${index + 1}번 카드 뒤집기`}
-          aria-pressed={picked === index}
-          onClick={() => setPicked(index)}>
-          {picked === index && result ? (
-            <Image className={styles.cardFace} src={`/project-media/byeoljari-${result.file}.webp`} alt="" fill sizes="(max-width: 600px) 24vw, 116px" />
-          ) : <span className={styles.cardBack} aria-hidden="true"><i /><b>☾</b><i /></span>}
-        </button>
-      ))}
+      {cards.map((_, index) => {
+        const chosen = picked === index;
+        return <button key={index} type="button" className={styles.card} data-chosen={chosen}
+          style={{ "--shift": 1 - index } as CSSProperties}
+          disabled={picked !== null && !chosen}
+          aria-label={chosen && result ? `${result.name} 카드${reading ? "" : ", 풀이 보기"}` : `${index + 1}번 카드 고르기`}
+          onClick={() => picked === null ? setPicked(index) : setReading(true)}>
+          <span className={styles.cardInner}>
+            <span className={styles.cardBack} aria-hidden="true"><span className={styles.cardMotif}><i /><b>☾</b><i /></span></span>
+            <span className={styles.cardFront}>
+              {chosen && result && <Image src={`/project-media/byeoljari-${result.file}.webp`} alt="" fill sizes="12rem" />}
+            </span>
+          </span>
+        </button>;
+      })}
     </div>
-    <div className={styles.result} aria-live="polite">
-      {result ? <><strong>{result.name} · {result.english}</strong><p>{result.detail}</p></> : "마음에 드는 카드를 골라보세요."}
-    </div>
-    {result && <button type="button" className={styles.reset} onClick={() => {
-      setPicked(null);
-      setOffset((value) => (value + 1) % cards.length);
-    }}>다시 고르기</button>}
-  </>;
+    <p className={styles.hint} aria-live="polite">
+      {phase === "choose" ? "마음에 드는 카드를 한 장 골라보세요." : phase === "flip" ? "카드를 한 번 더 누르면 풀이가 열립니다." : `${result?.name} · ${result?.english}`}
+    </p>
+    {reading && result && <div className={styles.reading}>
+      <p className={styles.readingLabel}>{result.english}</p>
+      <h2>{result.name}</h2>
+      <p>{result.detail}</p>
+      <button type="button" onClick={() => {
+        setReading(false);
+        setPicked(null);
+        setOffset((value) => (value + 1) % cards.length);
+      }}>다시 고르기</button>
+      <p className={styles.sample}>포트폴리오 체험용 예시</p>
+    </div>}
+  </div>;
 }
 
+type Tool = (typeof instruments)[number]["id"];
+
 export function ByeoljariRoom() {
-  const [tool, setTool] = useState<(typeof instruments)[number]["id"]>("tarot");
+  const [tool, setTool] = useState<Tool | null>(null);
+  const [revealed, setRevealed] = useState(false);
+  const reveal = useCallback(() => setRevealed(true), []);
+  const intro = useRef<HTMLDivElement>(null);
+  // Stable callback ref: focuses the stage once when a tool opens (the clicked button goes inert).
+  const focusStage = useCallback((node: HTMLElement | null) => node?.focus({ preventScroll: true }), []);
+
+  function closeTool() {
+    const previous = tool;
+    flushSync(() => setTool(null));
+    intro.current?.querySelector<HTMLButtonElement>(`[data-instrument="${previous}"]`)?.focus();
+  }
+
+  // Safety net if WebGL never starts; the dome sweep normally reveals the panels first.
+  useEffect(() => {
+    const timer = window.setTimeout(reveal, 9000);
+    return () => window.clearTimeout(timer);
+  }, [reveal]);
 
   return (
-    <div className={styles.room}>
-      <div className={styles.backdrop} aria-hidden="true"><ObservatorySky /></div>
+    <div className={styles.room} onPointerDown={reveal} onKeyDown={reveal}>
+      <div className={styles.backdrop} aria-hidden="true"><ObservatorySky onIntroEnd={reveal} /></div>
       <header className={styles.top}>
         <form method="dialog"><button type="submit" autoFocus>← 전시관으로 돌아가기</button></form>
       </header>
-      <div className={styles.layout}>
-        <div className={styles.intro}>
+      {!revealed && <p className={styles.skipHint}>돔이 한 바퀴 도는 중 · 누르면 바로 시작</p>}
+      <div className={styles.layout} data-revealed={revealed}>
+        <div ref={intro} className={styles.intro} data-hidden={tool !== null} inert={tool !== null}>
           <p>Byeoljari.com</p>
           <h1 id="project-preview-title">별자리 관측실</h1>
           <div className={styles.instruments} role="group" aria-label="관측 도구 선택">
             {instruments.map((item) => (
-              <button key={item.id} type="button" data-instrument={item.id} aria-pressed={tool === item.id} onClick={() => setTool(item.id)}>
+              <button key={item.id} type="button" data-instrument={item.id} onClick={() => setTool(item.id)}>
                 <span className={styles.instrumentIcon} aria-hidden="true">{item.symbol}</span>
                 <span><strong>{item.name}</strong><small>{item.description}</small></span>
               </button>
@@ -113,10 +148,14 @@ export function ByeoljariRoom() {
             <Link href="/projects/byeoljari">프로젝트 자세히 보기 ↗</Link>
           </div>
         </div>
-        <section key={tool} className={styles.workbench} aria-label={instruments.find((item) => item.id === tool)?.name}>
-          {tool === "saju" ? <Saju /> : tool === "astrology" ? <Astrology /> : <Tarot />}
-          <p className={styles.sample}>포트폴리오 체험용 예시</p>
-        </section>
+        {tool && <section key={tool} ref={focusStage} tabIndex={-1} className={styles.stage}
+          aria-label={instruments.find((item) => item.id === tool)?.name}>
+          <button type="button" className={styles.stageBack} onClick={closeTool}>← 관측실로</button>
+          {tool === "tarot" ? <Tarot /> : <div className={styles.workbench}>
+            {tool === "saju" ? <Saju /> : <Astrology />}
+            <p className={styles.sample}>포트폴리오 체험용 예시</p>
+          </div>}
+        </section>}
       </div>
       <footer className={styles.credits}><a href="/sky/credits.txt" target="_blank" rel="noreferrer">별 데이터 · HYG</a></footer>
     </div>
