@@ -140,7 +140,10 @@
   color: #322920;
   background: radial-gradient(ellipse at 65% 40%, #fff8e9, #e7e0d5 80%);
 }
+.galleryPoster { position: absolute; inset: 0; pointer-events: none; }
+.galleryPoster img { object-fit: cover; }
 .galleryCanvas { position: absolute; inset: 0; z-index: 0; transition: opacity .5s ease; }
+.galleryViewport[data-scene="modern"] .galleryCanvas { transition-duration: .28s; }
 .galleryCanvas[data-ready="false"] { opacity: 0; }
 .galleryCanvas canvas { touch-action: pan-y; }
 .galleryIntro { position: absolute; z-index: 1; top: 7%; left: 6%; pointer-events: none; }
@@ -154,6 +157,26 @@
 .galleryViewport[data-scene="modern"] .galleryIntro h1 {
   margin-bottom: .35rem;
   font-size: clamp(1.55rem, 3vw, 2.65rem);
+}
+.galleryDirectoryLink {
+  position: absolute;
+  z-index: 1;
+  top: 7%;
+  right: 6%;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  gap: .35rem;
+  padding: .5rem .7rem;
+  border: 1px solid #b4a391;
+  background: #fffaf1;
+  color: #322920;
+  font-size: .875rem;
+  white-space: nowrap;
+}
+.galleryDirectoryLink:hover { background: #fff; }
+@media (max-width: 520px) {
+  .galleryViewport[data-scene="modern"] .galleryIntro { max-width: 49%; }
 }
 .museumPreview, .museumPreview iframe { position: absolute; inset: 0; width: 100%; height: 100%; }
 .museumPreview img { object-fit: cover; }

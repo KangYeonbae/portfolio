@@ -126,7 +126,7 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
     syncMotion();
     motion.addEventListener("change", syncMotion);
     window.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("scrollend", settle);
+    if (!modern) window.addEventListener("scrollend", settle);
     window.addEventListener("resize", update);
     return () => {
       motion.removeEventListener("change", syncMotion);
@@ -135,7 +135,7 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
       window.removeEventListener("resize", update);
       cancelAnimationFrame(frame);
     };
-  }, [lastStop]);
+  }, [lastStop, modern]);
 
   function goToExhibit(index: number) {
     const section = stage.current;
@@ -162,10 +162,19 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
       {museum
         ? <Link href="/explore?scene=gallery" prefetch={false}>기존 전시관</Link>
         : <Link href="/explore?scene=museum" prefetch={false}>할빌 박물관</Link>}
-      <Link href="/projects">전체 프로젝트 보기</Link>
+      {modern
+        ? <a href={modernGallerySource} target="_blank" rel="noreferrer">Art Gallery · Zeps3D · CC BY 4.0 · 수정하여 사용</a>
+        : <Link href="/projects">전체 프로젝트 보기</Link>}
     </header>
     <div ref={stage} id="work" className={styles.galleryTrack} data-scene={scene}>
       <div ref={viewport} className={styles.galleryViewport} data-scene={scene}>
+        {modern && (
+          <picture className={styles.galleryPoster}>
+            <source media="(max-aspect-ratio: 4/5)" srcSet="/project-media/modern-gallery-poster-portrait.webp" />
+            <Image src="/project-media/modern-gallery-poster.webp" alt=""
+              fill unoptimized loading="eager" fetchPriority="high" />
+          </picture>
+        )}
         {museum ? (
           <div className={styles.museumPreview}>
             <Image src="/project-media/hallwyl-drawing-room.jpg" alt="할빌 박물관 응접실" fill sizes="100vw" preload />
@@ -192,6 +201,7 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
             </div>
           ) : <p>스크롤하거나 화살표로 이동하세요.</p>}
         </div>
+        {modern && <Link href="/projects" className={styles.galleryDirectoryLink}>전체 프로젝트 <span aria-hidden="true">↗</span></Link>}
         <button ref={marker} type="button" className={styles.galleryMarker} data-mounted={!reduced && sceneReady}
           aria-haspopup="dialog" onClick={() => openPreview(active)}>
           {(reduced || !sceneReady) && <Image src={exhibit.media} alt="" width={192} height={108} sizes="192px" />}
@@ -218,7 +228,8 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
             <div className={styles.roomActions}>
               <Link className={styles.textLink} href={`/projects/${preview.id}`}>프로젝트 자세히 보기 <span aria-hidden="true">↗</span></Link>
               {"action" in room && (
-                <a className={styles.textLink} href="#report-experiment" onClick={() => dialog.current?.close()}>
+                <a className={styles.textLink} href="#report-experiment"
+                  onClick={modern ? undefined : () => dialog.current?.close()}>
                   {room.action} <span aria-hidden="true">↓</span>
                 </a>
               )}
@@ -228,13 +239,17 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
             <Image src={preview.media} alt={`${preview.name} 제품 화면`} width={960} height={540} sizes="(max-width: 800px) 86vw, 52vw" />
           </figure>
         </div>
+        {modern && roomOpen && "action" in room && (
+          <div id="report-experiment" className={styles.reportExperiment}><ReportDemo /></div>
+        )}
       </div>
       </>}
     </dialog>
+    {!modern && <>
  <div className={styles.stage}><div className={styles.storyContent}><div className={styles.chapterIntro}><p className={styles.eyebrow}>SELECTED WORK / 2025—2026</p><h2>문제와 해답 사이,<br /><em>제가 만든 것들.</em></h2><p>스크롤을 따라 제품 이야기를 만나보세요.</p></div>{stories.map((story, index) => <section id={`story-${story.id}`} className={styles.story} key={story.id}><div className={styles.storyCopy}><span className={styles.storyNumber}>{String(index + 1).padStart(2, "0")} <i>/ {String(stories.length).padStart(2, "0")}</i></span><p className={styles.eyebrow}>{story.label}</p><h2>{story.title}</h2><p>{story.text}</p><span className={styles.storyTags}>{story.tags}</span><Link className={styles.textLink} href={`/projects/${story.id}`}>프로젝트 자세히 보기 <span>↗</span></Link></div><Link href={`/projects/${story.id}`} className={styles.screen} aria-label={`${story.name} 상세 보기`}><div className={styles.screenBar}><span>● ● ●</span><span>{story.id}</span></div><div className={styles.screenImage} style={{ backgroundImage: `url('${story.media}')` }} /><div className={styles.screenCaption}><span>{story.label}</span><b>{String(index + 1).padStart(2, "0")} / {String(stories.length).padStart(2, "0")}</b></div></Link>{index === 0 && <div id="report-experiment" className={styles.reportExperiment}><ReportDemo /></div>}</section>)}</div></div>
     <footer className={styles.exploreEnd}>
       <Link href="/projects">전체 프로젝트 보기</Link>
-      {modern && <a href={modernGallerySource} target="_blank" rel="noreferrer">Art Gallery · Zeps3D · CC BY 4.0 · 수정하여 사용</a>}
     </footer>
+    </>}
   </main>;
 }

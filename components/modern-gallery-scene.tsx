@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
-import { Suspense, useEffect, useMemo } from "react";
+import { Suspense, useEffect, useMemo, useRef } from "react";
 import {
   CatmullRomCurve3, EquirectangularReflectionMapping, ExtrudeGeometry, MathUtils, Mesh, NeutralToneMapping,
   Object3D, Path, PerspectiveCamera, ShaderMaterial, Shape, SRGBColorSpace, TextureLoader, Vector2, Vector3, type Texture,
@@ -58,15 +58,25 @@ const paneFaces = {
 function GalleryCamera({ progress }: { progress: number }) {
   const getState = useThree((state) => state.get);
   const { width, height } = useThree((state) => state.size);
-  const { segments, eye, target, nextEye, nextTarget } = useMemo(() => ({
-    segments: paths.map((path) => ({
-      eye: new CatmullRomCurve3(path.map((view) => new Vector3(...view.eye))),
-      target: new CatmullRomCurve3(path.map((view) => new Vector3(...view.target))),
-    })),
-    eye: new Vector3(...initial.eye),
-    target: new Vector3(...initial.target),
-    nextEye: new Vector3(),
-    nextTarget: new Vector3(),
+  const smoothProgress = useRef(progress);
+  const { segments, angles } = useMemo(() => ({
+    segments: paths.map((path) => {
+      let yaw: number | undefined;
+      const rotations = path.map(({ eye, target }) => {
+        const direction = new Vector3(...target).sub(new Vector3(...eye));
+        const heading = Math.atan2(-direction.x, -direction.z);
+        yaw = yaw === undefined
+          ? heading
+          : yaw + MathUtils.euclideanModulo(heading - yaw + Math.PI, 2 * Math.PI) - Math.PI;
+        const pitch = Math.atan2(direction.y, Math.hypot(direction.x, direction.z));
+        return new Vector3(pitch, yaw, 0);
+      });
+      return {
+        eye: new CatmullRomCurve3(path.map((view) => new Vector3(...view.eye))),
+        rotation: new CatmullRomCurve3(rotations, false, "catmullrom", .38),
+      };
+    }),
+    angles: new Vector3(),
   }), []);
 
   useEffect(() => {
@@ -78,16 +88,17 @@ function GalleryCamera({ progress }: { progress: number }) {
   }, [getState, width, height]);
 
   useFrame(({ camera }, delta) => {
-    const step = progress * segments.length;
+    smoothProgress.current = Math.abs(progress - smoothProgress.current) < .0001
+      ? progress
+      : MathUtils.damp(smoothProgress.current, progress, 9, Math.min(delta, .08));
+    const step = smoothProgress.current * segments.length;
     const index = Math.min(Math.floor(step), segments.length - 1);
-    const t = MathUtils.smoothstep(step - index, 0, 1);
-    const damping = 1 - Math.exp(-9 * Math.min(delta, .1));
-    segments[index].eye.getPoint(t, nextEye);
-    segments[index].target.getPoint(t, nextTarget);
-    eye.lerp(nextEye, damping);
-    target.lerp(nextTarget, damping);
-    camera.position.copy(eye);
-    camera.lookAt(target);
+    const segment = segments[index];
+    const distance = MathUtils.smoothstep(step - index, 0, 1);
+    const t = segment.eye.getUtoTmapping(distance, 0);
+    segment.eye.getPoint(t, camera.position);
+    segment.rotation.getPoint(t, angles);
+    camera.rotation.set(angles.x, angles.y, 0, "YXZ");
   });
 
   return null;
@@ -289,6 +300,12 @@ function Gallery({ progress, images, onOpen, onReady }: SceneProps) {
 }
 
 export default function ModernGalleryScene(props: SceneProps) {
+  const { images } = props;
+  useEffect(() => {
+    useLoader.preload(HDRLoader, daylightUrl);
+    useLoader.preload(TextureLoader, images);
+  }, [images]);
+
   return (
     <Canvas camera={{ position: initial.eye, fov: 57, near: .08, far: 80 }} shadows="percentage"
       scene={{ environmentIntensity: .5 }}
