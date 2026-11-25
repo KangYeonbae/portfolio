@@ -12,7 +12,7 @@ export default async function ExplorePage({
   searchParams: Promise<{ scene?: string | string[] }>;
 }) {
   const { scene: requestedScene } = await searchParams;
-  const scene = requestedScene === "room" || requestedScene === "museum" || requestedScene === "modern"
-    ? requestedScene : "gallery";
+  const scene = requestedScene === "room" || requestedScene === "museum" || requestedScene === "gallery"
+    ? requestedScene : "modern";
   return <ProjectExploration key={scene} scene={scene} />;
 }

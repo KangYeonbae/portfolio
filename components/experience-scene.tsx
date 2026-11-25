@@ -5,11 +5,9 @@ import { Suspense, useEffect, useMemo } from "react";
 import { CanvasTexture, MathUtils, NeutralToneMapping, Object3D, PMREMGenerator, RepeatWrapping, SRGBColorSpace, TextureLoader } from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
-import { exhibits, galleryImages } from "./gallery-layout";
+import { exhibits } from "./gallery-layout";
 
 const meadowImage = "/project-media/gallery-meadow.webp";
-// Called from the home page so textures are cached before the visitor opens the gallery.
-export const preloadGallery = () => { useLoader.preload(TextureLoader, galleryImages); useLoader.preload(TextureLoader, meadowImage); };
 
 type GalleryProps = {
   progress: number;

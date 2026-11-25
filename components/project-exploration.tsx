@@ -158,9 +158,9 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
   return <main className={styles.exploration}>
     <header className={styles.exploreNav}>
       <Link href="/">홈으로 돌아가기</Link>
-      {!modern && <Link href="/explore?scene=modern" prefetch={false}>모던 갤러리</Link>}
+      {!modern && <Link href="/explore" prefetch={false}>모던 갤러리</Link>}
       {museum
-        ? <Link href="/explore" prefetch={false}>기존 전시관</Link>
+        ? <Link href="/explore?scene=gallery" prefetch={false}>기존 전시관</Link>
         : <Link href="/explore?scene=museum" prefetch={false}>할빌 박물관</Link>}
       <Link href="/projects">전체 프로젝트 보기</Link>
     </header>
