@@ -1,50 +1,90 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Component, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { DubbyRoom } from "./dubby-room";
 import { ByeoljariRoom } from "./byeoljari-room";
+import { galleryImages } from "./gallery-layout";
+import { MuseumViewer } from "./museum-viewer";
 import styles from "./experience.module.css";
 
 const Scene = dynamic(() => import("./experience-scene"), { ssr: false });
+const RoomScene = dynamic(() => import("./apartment-scene"), { ssr: false });
+const ModernScene = dynamic(() => import("./modern-gallery-scene"), { ssr: false });
+const museumPage = "https://hallwylskamuseet.se/en/visit-us/visit-at-your-own-pace/the-great-drawing-room/";
+const modernGallerySource = "https://sketchfab.com/3d-models/art-gallery-720b507d814740278c713d100def4c99";
+
+class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
+
 const answers = ["광고비는 $1,200입니다.", "매출은 $3,600입니다.", "전환 수는 18건입니다."];
 function ReportDemo() {
  const [selected, setSelected] = useState<number | null>(null);
  const [checked, setChecked] = useState(false);
  return <div className={styles.demo}><div className={styles.demoHead}><span>INTERACTIVE / SAMPLE DATA</span><span>FACT CHECK</span></div><h3>리포트의 오류를 찾아보세요</h3><p>원본 표와 다른 숫자가 들어간 문장을 선택해 주세요.</p><div className={styles.table}><span>광고비 <b>$1,200</b></span><span>매출 <b>$3,200</b></span><span>전환 <b>18건</b></span></div><div className={styles.options}>{answers.map((answer, i) => <button type="button" key={answer} aria-pressed={selected === i} className={selected === i ? styles.selected : ""} onClick={() => { setSelected(i); setChecked(false); }}><span>{String(i + 1).padStart(2, "0")}</span>{answer}</button>)}</div><div className={styles.demoActions}><button type="button" onClick={() => setChecked(true)}>검증 실행</button><button type="button" onClick={() => { setSelected(null); setChecked(false); }}>초기화</button></div><p className={styles.feedback} aria-live="polite">{checked ? selected === null ? "먼저 문장을 선택해 주세요." : selected === 1 ? "정답입니다. 원본 매출은 $3,200인데 문장에는 $3,600으로 적혀 있습니다." : "이 문장은 원본과 일치합니다. 다른 문장도 확인해 보세요." : "실제 고객 데이터가 아닌 체험용 샘플입니다."}</p></div>;
 }
-const stories = [
- { id: "amazon-ads-agent", name: "Amazon Ads Reporting Agent", number: "01", label: "AI REPORTING / TRUST", title: "생성보다 중요한\n검증의 순간.", text: "AI가 리포트를 작성하고, 코드는 원본 데이터와 숫자를 대조합니다. 신뢰할 수 있는 결과를 만들기 위해 역할을 분리했습니다.", tags: "LLM GENERATION / PYTHON VALIDATION", media: "/project-media/amazon-reporting.png" },
- { id: "bid-master", name: "Bid Master", number: "02", label: "WORKFLOW / AUTOMATION", title: "몇 시간의 반복을\n하나의 흐름으로.", text: "흩어진 입찰 공고와 문서를 모으고 품목을 정리해, 사용자가 판단에 집중할 수 있도록 만들었습니다.", tags: "COLLECT / MATCH / DECIDE", media: "/project-media/bid-master.webp" },
- { id: "byeoljari", name: "Byeoljari.com", number: "03", label: "PRODUCT / DELIVERY", title: "결제 이후까지\n제품의 경험이니까.", text: "계산과 AI 해석을 분리하고, 결제한 사용자가 끝내 결과를 받는 것까지 하나의 경험으로 설계했습니다.", tags: "CALCULATE / VERIFY / DELIVER", media: "/project-media/byeoljari.png" },
- { id: "dubby", name: "Dubby", number: "04", label: "SOCIAL / MESSENGER", title: "대화하다가\n같이 게임하는 곳.", text: "1:1과 그룹 채팅, 스토리, 투표, 카드게임을 한 앱에 담은 소셜 메신저입니다.", tags: "FLUTTER / FIREBASE / REALTIME", media: "/project-media/dubby.jpg" },
+const galleryStories = [
+ { id: "amazon-ads-agent", name: "Amazon Ads Reporting Agent", label: "AI REPORTING / TRUST", title: "생성보다 중요한\n검증의 순간.", text: "AI가 리포트를 작성하고, 코드는 원본 데이터와 숫자를 대조합니다. 신뢰할 수 있는 결과를 만들기 위해 역할을 분리했습니다.", tags: "LLM GENERATION / PYTHON VALIDATION", media: "/project-media/amazon-reporting.png" },
+ { id: "bid-master", name: "Bid Master", label: "WORKFLOW / AUTOMATION", title: "몇 시간의 반복을\n하나의 흐름으로.", text: "흩어진 입찰 공고와 문서를 모으고 품목을 정리해, 사용자가 판단에 집중할 수 있도록 만들었습니다.", tags: "COLLECT / MATCH / DECIDE", media: "/project-media/bid-master.webp" },
+ { id: "byeoljari", name: "Byeoljari.com", label: "PRODUCT / DELIVERY", title: "결제 이후까지\n제품의 경험이니까.", text: "계산과 AI 해석을 분리하고, 결제한 사용자가 끝내 결과를 받는 것까지 하나의 경험으로 설계했습니다.", tags: "CALCULATE / VERIFY / DELIVER", media: "/project-media/byeoljari.png" },
+ { id: "dubby", name: "Dubby", label: "SOCIAL / MESSENGER", title: "대화하다가\n같이 게임하는 곳.", text: "1:1과 그룹 채팅, 스토리, 투표, 카드게임을 한 앱에 담은 소셜 메신저입니다.", tags: "FLUTTER / FIREBASE / REALTIME", media: "/project-media/dubby.jpg" },
 ] as const;
-const galleryImages = stories.map((story) => story.media);
+
+const modernStories = [
+  galleryStories[0],
+  {
+    id: "local-browser-agent",
+    name: "Local Browser Agent",
+    label: "LOCAL AI / BROWSER AUTOMATION",
+    title: "브라우저에서 이어지는\n로컬 AI.",
+    text: "로컬 AI가 자연어 요청을 실행 순서로 바꾸고, 웹 화면과 DOM을 함께 읽어 결과를 확인하는 브라우저 자동화 프로토타입입니다.",
+    tags: "OLLAMA / LANGGRAPH / PLAYWRIGHT",
+    media: "/project-media/local-browser-agent.png",
+  },
+  ...galleryStories.slice(1),
+] as const;
+const modernGalleryImages = modernStories.map((story) => story.media);
 
 const rooms = {
   "amazon-ads-agent": { theme: "control", name: "데이터 관제실", action: "리포트 검증 체험" },
   "bid-master": { theme: "dispatch", name: "물류 작업장" },
   byeoljari: { theme: "observatory", name: "별자리 관측실" },
   dubby: { theme: "dubby", name: "Dubby 라운지" },
+  "local-browser-agent": { theme: "control", name: "로컬 AI 작업실" },
 } as const;
 
-export function ProjectExploration() {
+export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | "room" | "museum" | "modern" }) {
   const [progress, setProgress] = useState(0);
   const [reduced, setReduced] = useState(true);
   const [selected, setSelected] = useState(0);
   const [roomOpen, setRoomOpen] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
+  const [museumViewerOpen, setMuseumViewerOpen] = useState(false);
   const stage = useRef<HTMLDivElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const marker = useRef<HTMLButtonElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
-  const active = Math.round(progress * (stories.length - 1));
+  const museum = scene === "museum";
+  const modern = scene === "modern";
+  const stories = modern ? modernStories : galleryStories;
+  const lastStop = stories.length - 1;
+  const active = Math.round(progress * lastStop);
   const exhibit = stories[active];
   const preview = stories[selected];
   const room = rooms[preview.id];
   const onSceneReady = useCallback(() => setSceneReady(true), []);
+  const ActiveScene = modern ? ModernScene : scene === "room" ? RoomScene : Scene;
 
   useEffect(() => {
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -72,14 +112,14 @@ export function ProjectExploration() {
       const distance = element.offsetHeight - viewport.current.offsetHeight;
       const raw = -element.getBoundingClientRect().top / Math.max(1, distance);
       if (raw <= 0 || raw >= 1) return; // outside the gallery: leave normal page scrolling alone
-      const position = raw * (stories.length - 1);
+      const position = raw * lastStop;
       if (Math.abs(position - Math.round(position)) < .02) {
         resting = Math.round(position);
         return;
       }
       resting = position > resting ? Math.ceil(position) : Math.floor(position);
       window.scrollTo({
-        top: element.getBoundingClientRect().top + window.scrollY + distance * resting / (stories.length - 1),
+        top: element.getBoundingClientRect().top + window.scrollY + distance * resting / lastStop,
         behavior: motion.matches ? "instant" : "smooth",
       });
     };
@@ -95,7 +135,7 @@ export function ProjectExploration() {
       window.removeEventListener("resize", update);
       cancelAnimationFrame(frame);
     };
-  }, []);
+  }, [lastStop]);
 
   function goToExhibit(index: number) {
     const section = stage.current;
@@ -103,7 +143,7 @@ export function ProjectExploration() {
     const start = section.getBoundingClientRect().top + window.scrollY;
     const distance = section.offsetHeight - viewport.current.offsetHeight;
     window.scrollTo({
-      top: start + distance * index / (stories.length - 1),
+      top: start + distance * index / lastStop,
       behavior: reduced ? "instant" : "smooth",
     });
   }
@@ -118,16 +158,39 @@ export function ProjectExploration() {
   return <main className={styles.exploration}>
     <header className={styles.exploreNav}>
       <Link href="/">홈으로 돌아가기</Link>
+      {!modern && <Link href="/explore?scene=modern" prefetch={false}>모던 갤러리</Link>}
+      {museum
+        ? <Link href="/explore" prefetch={false}>기존 전시관</Link>
+        : <Link href="/explore?scene=museum" prefetch={false}>할빌 박물관</Link>}
       <Link href="/projects">전체 프로젝트 보기</Link>
     </header>
-    <div ref={stage} id="work" className={styles.galleryTrack}>
-      <div ref={viewport} className={styles.galleryViewport}>
-        <div className={styles.galleryCanvas} aria-hidden="true">
-          {!reduced && <Scene progress={progress} images={galleryImages} onOpen={openPreview} onReady={onSceneReady} />}
-        </div>
+    <div ref={stage} id="work" className={styles.galleryTrack} data-scene={scene}>
+      <div ref={viewport} className={styles.galleryViewport} data-scene={scene}>
+        {museum ? (
+          <div className={styles.museumPreview}>
+            <Image src="/project-media/hallwyl-drawing-room.jpg" alt="할빌 박물관 응접실" fill sizes="100vw" preload />
+            {museumViewerOpen && <MuseumViewer active={active} reduced={reduced} />}
+          </div>
+        ) : (
+          <div className={styles.galleryCanvas} data-ready={sceneReady} aria-hidden="true">
+            {!reduced && (
+              <SceneBoundary>
+                <ActiveScene progress={progress} images={modern ? modernGalleryImages : galleryImages}
+                  onOpen={openPreview} onReady={onSceneReady} />
+              </SceneBoundary>
+            )}
+          </div>
+        )}
         <div className={styles.galleryIntro}>
-          <h1>프로젝트 전시관</h1>
-          <p>스크롤하거나 화살표로 이동하세요.</p>
+          <h1>{museum ? "할빌 박물관" : modern ? "모던 갤러리" : scene === "room" ? "거실에서 만나는 프로젝트" : "프로젝트 전시관"}</h1>
+          {museum ? (
+            <div className={styles.museumActions}>
+              <button type="button" onClick={() => setMuseumViewerOpen((open) => !open)}>
+                {museumViewerOpen ? "사진으로 돌아가기" : "3D 둘러보기"}
+              </button>
+              <a href={museumPage} target="_blank" rel="noreferrer">Erik Lernestål · Hallwyl Museum/SHM · CC BY</a>
+            </div>
+          ) : <p>스크롤하거나 화살표로 이동하세요.</p>}
         </div>
         <button ref={marker} type="button" className={styles.galleryMarker} data-mounted={!reduced && sceneReady}
           aria-haspopup="dialog" onClick={() => openPreview(active)}>
@@ -138,7 +201,7 @@ export function ProjectExploration() {
         <nav className={styles.galleryControls} aria-label="전시관 이동">
           <button type="button" disabled={active === 0} onClick={() => goToExhibit(active - 1)} aria-label="이전 프로젝트">←</button>
           <span>{active + 1} / {stories.length}</span>
-          <button type="button" disabled={active === stories.length - 1} onClick={() => goToExhibit(active + 1)} aria-label="다음 프로젝트">→</button>
+          <button type="button" disabled={active === lastStop} onClick={() => goToExhibit(active + 1)} aria-label="다음 프로젝트">→</button>
         </nav>
       </div>
     </div>
@@ -168,7 +231,10 @@ export function ProjectExploration() {
       </div>
       </>}
     </dialog>
- <div className={styles.stage}><div className={styles.storyContent}><div className={styles.chapterIntro}><p className={styles.eyebrow}>SELECTED WORK / 2025—2026</p><h2>문제와 해답 사이,<br /><em>제가 만든 것들.</em></h2><p>스크롤을 따라 제품 이야기를 만나보세요.</p></div>{stories.map((story, index) => <section id={`story-${story.id}`} className={styles.story} key={story.id}><div className={styles.storyCopy}><span className={styles.storyNumber}>{story.number} <i>/ {String(stories.length).padStart(2, "0")}</i></span><p className={styles.eyebrow}>{story.label}</p><h2>{story.title}</h2><p>{story.text}</p><span className={styles.storyTags}>{story.tags}</span><Link className={styles.textLink} href={`/projects/${story.id}`}>프로젝트 자세히 보기 <span>↗</span></Link></div><Link href={`/projects/${story.id}`} className={styles.screen} aria-label={`${story.name} 상세 보기`}><div className={styles.screenBar}><span>● ● ●</span><span>{story.id}</span></div><div className={styles.screenImage} style={{ backgroundImage: `url('${story.media}')` }} /><div className={styles.screenCaption}><span>{story.label}</span><b>{story.number} / {String(stories.length).padStart(2, "0")}</b></div></Link>{index === 0 && <div id="report-experiment" className={styles.reportExperiment}><ReportDemo /></div>}</section>)}</div></div>
-    <footer className={styles.exploreEnd}><Link href="/projects">전체 프로젝트 보기</Link></footer>
+ <div className={styles.stage}><div className={styles.storyContent}><div className={styles.chapterIntro}><p className={styles.eyebrow}>SELECTED WORK / 2025—2026</p><h2>문제와 해답 사이,<br /><em>제가 만든 것들.</em></h2><p>스크롤을 따라 제품 이야기를 만나보세요.</p></div>{stories.map((story, index) => <section id={`story-${story.id}`} className={styles.story} key={story.id}><div className={styles.storyCopy}><span className={styles.storyNumber}>{String(index + 1).padStart(2, "0")} <i>/ {String(stories.length).padStart(2, "0")}</i></span><p className={styles.eyebrow}>{story.label}</p><h2>{story.title}</h2><p>{story.text}</p><span className={styles.storyTags}>{story.tags}</span><Link className={styles.textLink} href={`/projects/${story.id}`}>프로젝트 자세히 보기 <span>↗</span></Link></div><Link href={`/projects/${story.id}`} className={styles.screen} aria-label={`${story.name} 상세 보기`}><div className={styles.screenBar}><span>● ● ●</span><span>{story.id}</span></div><div className={styles.screenImage} style={{ backgroundImage: `url('${story.media}')` }} /><div className={styles.screenCaption}><span>{story.label}</span><b>{String(index + 1).padStart(2, "0")} / {String(stories.length).padStart(2, "0")}</b></div></Link>{index === 0 && <div id="report-experiment" className={styles.reportExperiment}><ReportDemo /></div>}</section>)}</div></div>
+    <footer className={styles.exploreEnd}>
+      <Link href="/projects">전체 프로젝트 보기</Link>
+      {modern && <a href={modernGallerySource} target="_blank" rel="noreferrer">Art Gallery · Zeps3D · CC BY 4.0 · 수정하여 사용</a>}
+    </footer>
   </main>;
 }

@@ -2,9 +2,14 @@
 
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { Suspense, useEffect, useMemo } from "react";
-import { CanvasTexture, Color, DataTexture, DoubleSide, MathUtils, Object3D, PMREMGenerator, PlaneGeometry, RepeatWrapping, SRGBColorSpace, TextureLoader } from "three";
+import { CanvasTexture, MathUtils, NeutralToneMapping, Object3D, PMREMGenerator, RepeatWrapping, SRGBColorSpace, TextureLoader } from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
-import { exhibits } from "./gallery-layout";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
+import { exhibits, galleryImages } from "./gallery-layout";
+
+const meadowImage = "/project-media/gallery-meadow.webp";
+// Called from the home page so textures are cached before the visitor opens the gallery.
+export const preloadGallery = () => { useLoader.preload(TextureLoader, galleryImages); useLoader.preload(TextureLoader, meadowImage); };
 
 type GalleryProps = {
   progress: number;
@@ -22,8 +27,10 @@ function Panel({ position, size, color, roughness = .8 }: {
   color: string;
   roughness?: number;
 }) {
-  return <mesh position={position} castShadow receiveShadow>
-    <boxGeometry args={size} />
+  const [w, h, d] = size;
+  const geometry = useMemo(() => new RoundedBoxGeometry(w, h, d, 2, Math.min(.035, Math.min(w, h, d) * .45)), [w, h, d]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  return <mesh position={position} geometry={geometry} castShadow receiveShadow>
     <meshStandardMaterial color={color} roughness={roughness} />
   </mesh>;
 }
@@ -86,31 +93,13 @@ function WoodFloor() {
 }
 
 function OutdoorView() {
-  const meadowSource = useLoader(TextureLoader, "/project-media/gallery-meadow.webp");
+  const meadowSource = useLoader(TextureLoader, meadowImage);
   const meadow = useMemo(() => {
     const texture = meadowSource.clone();
     texture.colorSpace = SRGBColorSpace;
     texture.needsUpdate = true;
     return texture;
   }, [meadowSource]);
-  const grass = useMemo(() => {
-    const positions: number[] = [];
-    const colors: number[] = [];
-    const shades = ["#648648", "#7f9a50", "#9aaa64", "#526f3b"].map((hex) => new Color(hex));
-    for (let index = 0; index < 390; index++) {
-      const x = -6.25 - (index % 17) * .115;
-      const z = 3 - ((index * 17) % 397) * .16;
-      const height = .65 + (index % 9) * .115;
-      const lean = Math.sin(index * 1.36) * .21;
-      const tip = [x + lean, height, z + .08];
-      positions.push(x - .036, -.19, z, x + .036, -.19, z, ...tip);
-      positions.push(x, -.19, z - .038, x, -.19, z + .038, ...tip);
-      const shade = shades[index % shades.length];
-      for (let vertex = 0; vertex < 6; vertex++) colors.push(shade.r, shade.g, shade.b);
-    }
-    return { positions: new Float32Array(positions), colors: new Float32Array(colors) };
-  }, []);
-
   useEffect(() => () => meadow.dispose(), [meadow]);
 
   return <>
@@ -122,52 +111,7 @@ function OutdoorView() {
       <planeGeometry args={[20, 72]} />
       <meshStandardMaterial color="#839a58" roughness={1} />
     </mesh>
-    <mesh>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[grass.positions, 3]} />
-        <bufferAttribute attach="attributes-color" args={[grass.colors, 3]} />
-      </bufferGeometry>
-      <meshBasicMaterial vertexColors side={DoubleSide} />
-    </mesh>
   </>;
-}
-
-function Curtains() {
-  const { geometry, lace } = useMemo(() => {
-    const geometry = new PlaneGeometry(1.15, 3.9, 30, 4);
-    const positions = geometry.attributes.position;
-    for (let i = 0; i < positions.count; i++) {
-      const x = positions.getX(i);
-      const y = positions.getY(i);
-      positions.setXYZ(i, x + .09 * (1 - y / 1.95) * (x + .575), y, .07 * Math.cos(x * 28));
-    }
-    const size = 64;
-    const pixels = new Uint8Array(size * size * 4);
-    for (let y = 0; y < size; y++) {
-      for (let x = 0; x < size; x++) {
-        const distance = Math.hypot(x - 32, y - 32);
-        const weave = x % 8 === 0 || y % 8 === 0;
-        const flower = Math.abs(distance - 14) < 1.5 || Math.abs(x - 32) + Math.abs(y - 32) < 8;
-        const value = flower ? 216 : weave ? 132 : 62;
-        pixels.set([value, value, value, 255], (y * size + x) * 4);
-      }
-    }
-    const lace = new DataTexture(pixels, size, size);
-    lace.wrapS = lace.wrapT = RepeatWrapping;
-    lace.repeat.set(4, 13);
-    lace.needsUpdate = true;
-    return { geometry, lace };
-  }, []);
-
-  useEffect(() => () => { geometry.dispose(); lace.dispose(); }, [geometry, lace]);
-
-  return <group>
-    {bays.filter((_, index) => index % 2 === 0).map((z) => (
-      <mesh key={z} position={[-5.67, 2.95, z - .79]} rotation={[0, Math.PI / 2, 0]} geometry={geometry}>
-        <meshBasicMaterial color="#fff8ed" alphaMap={lace} transparent opacity={.7} depthWrite={false} side={DoubleSide} />
-      </mesh>
-    ))}
-  </group>;
 }
 
 function WindowSeat({ z }: { z: number }) {
@@ -229,7 +173,6 @@ function Gallery({ progress, images, onOpen, onReady }: GalleryProps) {
         shadow-camera-left={-40} shadow-camera-right={40} shadow-camera-top={40} shadow-camera-bottom={-40}
         shadow-camera-near={1} shadow-camera-far={60} />
       <Suspense fallback={null}><OutdoorView /></Suspense>
-      <Curtains />
       {restingBays.map((z) => <WindowSeat key={z} z={z} />)}
       <WoodFloor />
       <Panel position={[5.87, 2.7, -26]} size={[0.25, 5.4, 70]} color="#f1ece3" roughness={.95} />
@@ -242,8 +185,6 @@ function Gallery({ progress, images, onOpen, onReady }: GalleryProps) {
           <Panel position={[-5.8, 2.7, 0]} size={[.42, 5.4, .38]} color="#f5efe4" />
           <Panel position={[-5.8, .41, -2]} size={[.24, .82, 4]} color="#ded6c8" />
           <Panel position={[-5.73, .84, -2]} size={[.44, .08, 4]} color="#b89a7a" roughness={.6} />
-          <Panel position={[-5.8, 3.53, -2]} size={[.1, .055, 4]} color="#cabba9" />
-          <Panel position={[-5.8, 2.83, -2]} size={[.1, 3.93, .045]} color="#cabba9" />
           {index % 2 === 1 && (
             <mesh position={[1.65, 5.34, -1]} rotation={[Math.PI / 2, 0, 0]}>
               <planeGeometry args={[1.2, .7]} />
@@ -281,10 +222,6 @@ function Gallery({ progress, images, onOpen, onReady }: GalleryProps) {
               </mesh>
               <Panel position={[0, .8, -.09]} size={[1.1, .3, .04]} color="#fffdf8" roughness={.7} />
               <Panel position={[-.52, .8, -.085]} size={[.06, .3, .045]} color={color} />
-              <mesh position={[.36, .8, -.06]} rotation={[0, 0, -Math.PI / 2]}>
-                <coneGeometry args={[.06, .11, 3]} />
-                <meshBasicMaterial color="#3a2d24" />
-              </mesh>
             </group>
           </group>
         );
@@ -298,8 +235,8 @@ export default function Scene(props: GalleryProps) {
     <Canvas
       camera={{ position: [0, 2.9, 3.2], fov: 61 }}
       shadows="percentage"
-      scene={{ environmentIntensity: .45 }}
-      gl={{ antialias: true, powerPreference: "low-power" }}
+      scene={{ environmentIntensity: .75 }}
+      gl={{ antialias: true, powerPreference: "low-power", toneMapping: NeutralToneMapping }}
       dpr={[1, 1.5]}
       fallback={null}
     >

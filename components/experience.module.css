@@ -117,6 +117,7 @@
 .exploration a:focus-visible { outline: 2px solid #b9afff; outline-offset: 4px; }
 .exploreNav, .exploreEnd { display: flex; justify-content: space-between; gap: 1rem; padding: 1.25rem 8%; background: #101224; border-bottom: 1px solid #66698755; }
 .exploreNav a, .exploreEnd a, .exploreStops a { min-height: 44px; display: inline-flex; align-items: center; }
+.exploreNav, .exploreEnd { flex-wrap: wrap; }
 .exploreEnd { justify-content: flex-end; border-top: 1px solid #66698755; }
 .exploration .scene { opacity: .78; background: radial-gradient(ellipse at 72% 48%, #30294f, #101224 70%); }
 .exploration .chapterIntro { min-height: 88svh; display: flex; flex-direction: column; justify-content: center; background: linear-gradient(90deg, #101224f5, #10122491 55%, transparent); }
@@ -130,6 +131,7 @@
 .exploration a.screen:hover { border-color: #b9afff; }
 
 .galleryTrack { min-height: 300svh; }
+.galleryTrack[data-scene="modern"] { min-height: 367svh; }
 .galleryViewport {
   position: sticky;
   top: 0;
@@ -138,11 +140,59 @@
   color: #322920;
   background: radial-gradient(ellipse at 65% 40%, #fff8e9, #e7e0d5 80%);
 }
-.galleryCanvas { position: absolute; inset: 0; z-index: 0; }
+.galleryCanvas { position: absolute; inset: 0; z-index: 0; transition: opacity .5s ease; }
+.galleryCanvas[data-ready="false"] { opacity: 0; }
 .galleryCanvas canvas { touch-action: pan-y; }
 .galleryIntro { position: absolute; z-index: 1; top: 7%; left: 6%; pointer-events: none; }
 .galleryIntro h1 { margin: 0 0 .5rem; font-size: clamp(1.8rem, 4vw, 3.5rem); }
 .galleryIntro p { margin: 0; color: #584b3e; }
+.galleryViewport[data-scene="modern"] .galleryIntro {
+  padding: .65rem .9rem .7rem;
+  background: #fffaf1ed;
+  border: 1px solid #d5cab8;
+}
+.galleryViewport[data-scene="modern"] .galleryIntro h1 {
+  margin-bottom: .35rem;
+  font-size: clamp(1.55rem, 3vw, 2.65rem);
+}
+.museumPreview, .museumPreview iframe { position: absolute; inset: 0; width: 100%; height: 100%; }
+.museumPreview img { object-fit: cover; }
+.museumPreview iframe { border: 0; pointer-events: none; transition: opacity .4s ease; }
+.museumPreview iframe[data-ready="false"] { opacity: 0; }
+.museumViewerStatus {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max-content;
+  max-width: 80%;
+  transform: translate(-50%, -50%);
+  padding: .7rem 1rem;
+  background: #1f1914ef;
+  color: #fff8ed;
+  text-align: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .museumPreview iframe { transition: none; }
+}
+.galleryViewport[data-scene="museum"] { background: #26201e; }
+.galleryViewport[data-scene="museum"] .galleryIntro {
+  padding: .85rem 1rem;
+  max-width: 88%;
+  background: #1f1914e8;
+  color: #fff8ed;
+}
+.galleryViewport[data-scene="museum"] .galleryIntro h1 { font-size: clamp(1.6rem, 3vw, 2.6rem); }
+.museumActions { display: flex; flex-wrap: wrap; gap: .35rem .85rem; align-items: center; }
+.museumActions button, .museumActions a { pointer-events: auto; }
+.museumActions button {
+  min-height: 44px;
+  padding: .25rem .75rem;
+  border: 1px solid #e3c496;
+  background: #f9efe1;
+  color: #33291f;
+  cursor: pointer;
+}
+.museumActions a { font-size: .75rem; color: #f2dfc3; }
 .galleryMarker {
   position: absolute;
   z-index: 1;
