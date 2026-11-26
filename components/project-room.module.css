@@ -137,9 +137,6 @@
   max-height: 47svh;
   object-fit: contain;
 }
-.report > section { margin: 0; }
-.room .report p { color: #4e5265; }
-.room .report button[aria-pressed="true"] { border-color: #6557ff; }
 .mathSample { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: .5rem; margin-top: .75rem; }
 .mathSample select {
   justify-self: start;

@@ -2,19 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import styles from "./project-room.module.css";
 
 const rooms = {
-  "amazon-ads-agent": {
-    name: "리포트 관제실",
-    headline: "광고 리포트의 숫자는 어디서 왔을까?",
-    steps: [
-      ["데이터 수집", "원본 데이터를 모읍니다", "Amazon 광고의 비용·매출·전환을 날짜와 캠페인별로 수집해 BigQuery에 저장합니다."],
-      ["리포트 작성", "작성 Agent가 초안을 만듭니다", "캠페인 집계와 차트를 재료로 성과의 변화와 다음에 확인할 항목을 정리합니다."],
-      ["검증 체험", "원본과 리포트를 대조해 보세요", "검수 Agent가 하는 것처럼 광고비·매출·전환 수를 확인합니다."],
-    ],
-  },
   "local-browser-agent": {
     name: "로컬 AI 작업실",
     headline: "내 브라우저에서 실행되는 AI",
@@ -75,17 +66,15 @@ function MathSample() {
   </div>;
 }
 
-export default function ProjectRoom({ id, name, text, media, report }: {
+export default function ProjectRoom({ id, name, text, media }: {
   id: RoomId;
   name: string;
   text: string;
   media: string;
-  report?: ReactNode;
 }) {
   const room = rooms[id];
   const [step, setStep] = useState(0);
   const [, title, description] = room.steps[step];
-  const reportOpen = id === "amazon-ads-agent" && step === 2;
 
   return <div className={styles.room} data-project={id}>
     <header className={styles.toolbar}>
@@ -111,10 +100,10 @@ export default function ProjectRoom({ id, name, text, media, report }: {
           <p>{description}</p>
           {id === "exam-forge" && step === 1 && <MathSample />}
         </div>
-        {reportOpen ? <div className={styles.report}>{report}</div> : <figure className={styles.preview}>
+        <figure className={styles.preview}>
           <Image src={media} alt={`${name} 실제 제품 화면`} width={960} height={540}
             sizes="(max-width: 840px) 88vw, 52vw" />
-        </figure>}
+        </figure>
       </section>
     </div>
   </div>;
