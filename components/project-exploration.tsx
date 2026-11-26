@@ -14,8 +14,15 @@ const RoomScene = dynamic(() => import("./apartment-scene"), { ssr: false });
 const ModernScene = dynamic(() => import("./modern-gallery-scene"), { ssr: false });
 const DubbyRoom = dynamic(() => import("./dubby-room").then((module) => module.DubbyRoom), { loading: RoomLoading });
 const ByeoljariRoom = dynamic(() => import("./byeoljari-room").then((module) => module.ByeoljariRoom), { loading: RoomLoading });
-const ProjectRoom = dynamic(() => import("./project-room"), { loading: RoomLoading });
-const ReportRoom = dynamic(() => import("./report-room"), { loading: RoomLoading });
+// Each modern-gallery project opens its own room.
+const customRooms = {
+  "amazon-ads-agent": dynamic(() => import("./report-room"), { loading: RoomLoading }),
+  "exam-forge": dynamic(() => import("./exam-room"), { loading: RoomLoading }),
+  "snap-p": dynamic(() => import("./studio-room"), { loading: RoomLoading }),
+  "bid-master": dynamic(() => import("./bid-room"), { loading: RoomLoading }),
+  "voc-analyzer": dynamic(() => import("./voc-room"), { loading: RoomLoading }),
+  "local-browser-agent": dynamic(() => import("./agent-room"), { loading: RoomLoading }),
+};
 const museumPage = "https://hallwylskamuseet.se/en/visit-us/visit-at-your-own-pace/the-great-drawing-room/";
 const modernGallerySource = "https://sketchfab.com/3d-models/art-gallery-720b507d814740278c713d100def4c99";
 const walkerSource = "https://sketchfab.com/3d-models/nathan-animated-003-walking-3d-man-143a2b1ea5eb4385ae90a73657aca3bc";
@@ -113,6 +120,7 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
   const exhibit = stories[active];
   const preview = stories[selected];
   const room = rooms[preview.id];
+  const CustomRoom = modern ? customRooms[preview.id as keyof typeof customRooms] : undefined;
   const onSceneReady = useCallback(() => setSceneReady(true), []);
   const ActiveScene = scene === "room" ? RoomScene : Scene;
   const scenePaused = roomOpen || !galleryVisible;
@@ -286,9 +294,8 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
         marker.current?.focus({ preventScroll: true });
       }}>
       {roomOpen && (preview.id === "dubby" ? <DubbyRoom /> : preview.id === "byeoljari" ? <ByeoljariRoom />
-        : modern && preview.id === "amazon-ads-agent" ? <ReportRoom />
-        // amazon-ads-agent is handled by ReportRoom above; TS cannot narrow through "modern &&"
-        : modern ? <ProjectRoom key={preview.id} id={preview.id as Exclude<typeof preview.id, "amazon-ads-agent">} name={preview.name} text={preview.text} media={preview.media} /> : <>
+        : CustomRoom ? <CustomRoom />
+        : <>
       <div className={styles.roomAtmosphere} aria-hidden="true" />
       <div className={styles.roomContent}>
         <form method="dialog"><button type="submit" autoFocus>← 전시관으로 돌아가기</button></form>
