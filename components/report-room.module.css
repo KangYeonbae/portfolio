@@ -9,13 +9,15 @@
   --ok: #7be0b4;
   --bad: #ff8a8a;
   --fix: #ffd37a;
+  position: relative;
+  isolation: isolate;
   min-height: 100%;
   color: var(--ink);
-  background:
-    radial-gradient(ellipse at 50% -10%, #235460 0, transparent 55%),
-    repeating-linear-gradient(90deg, #ffffff05 0 1px, transparent 1px 4rem),
-    var(--base);
+  background: #04080c;
 }
+/* 3D control room fixed behind the content; the shade keeps text readable on the left */
+.scene { position: fixed; inset: 0; z-index: -1; }
+.scene::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, #04080cd9 0, #04080c66 45%, transparent 75%), linear-gradient(0deg, #04080ccc 0, transparent 40%); }
 .toolbar, .body { width: min(92%, 84rem); margin-inline: auto; }
 .toolbar {
   display: flex;
@@ -61,7 +63,8 @@
   padding: .9rem 1rem 1.1rem;
   border: 1px solid var(--edge);
   border-radius: .7rem;
-  background: linear-gradient(180deg, #ffffff08, transparent 30%), var(--screen);
+  background: linear-gradient(180deg, #ffffff0a, transparent 30%), #0a141cd9;
+  backdrop-filter: blur(6px);
   box-shadow: inset 0 0 2.5rem #00000080, 0 1rem 3rem #0006;
 }
 .monitor h2 { margin: 0 0 .8rem; color: var(--secondary); font-size: .8rem; font-weight: 650; letter-spacing: .02em; }

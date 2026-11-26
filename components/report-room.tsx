@@ -1,8 +1,12 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import type { ReportMood } from "./report-scene";
 import styles from "./report-room.module.css";
+
+const ReportScene = dynamic(() => import("./report-scene"), { ssr: false });
 
 // Sample data only: campaign names and figures are invented for the demo.
 const rows = [
@@ -71,7 +75,10 @@ export default function ReportRoom() {
   };
 
   let tokenIndex = -1;
+  // The control room behind reacts to the check: scan while comparing, alarm on the caught errors, green once it passes
+  const mood: ReportMood = { idle: "idle", checking: "scan", fixing: "alert", final: "fix", done: "ok" }[phase] as ReportMood;
   return <div className={styles.room}>
+    <div className={styles.scene} aria-hidden="true"><ReportScene mood={mood} /></div>
     <header className={styles.toolbar}>
       <form method="dialog"><button type="submit" autoFocus>← 전시관으로 돌아가기</button></form>
       <Link href="/projects/amazon-ads-agent" prefetch={false}>프로젝트 자세히 보기 ↗</Link>
