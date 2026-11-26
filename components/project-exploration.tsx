@@ -5,13 +5,11 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { projects } from "@/data/projects";
-import { galleryImages } from "./gallery-layout";
-import { MuseumViewer } from "./museum-viewer";
 import styles from "./experience.module.css";
 
-const Scene = dynamic(() => import("./experience-scene"), { ssr: false });
-const RoomScene = dynamic(() => import("./apartment-scene"), { ssr: false });
 const ModernScene = dynamic(() => import("./modern-gallery-scene"), { ssr: false });
+// Hallwyl museum is kept for later but hidden; load its viewer only when that scene is opened.
+const MuseumViewer = dynamic(() => import("./museum-viewer").then((module) => module.MuseumViewer), { ssr: false });
 const DubbyRoom = dynamic(() => import("./dubby-room").then((module) => module.DubbyRoom), { loading: RoomLoading });
 const ByeoljariRoom = dynamic(() => import("./byeoljari-room").then((module) => module.ByeoljariRoom), { loading: RoomLoading });
 // Each modern-gallery project opens its own room.
@@ -34,11 +32,15 @@ function RoomLoading() {
   </div>;
 }
 
-class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+class SceneBoundary extends Component<{ children: ReactNode; onError?: () => void }, { failed: boolean }> {
   state = { failed: false };
 
   static getDerivedStateFromError() {
     return { failed: true };
+  }
+
+  componentDidCatch() {
+    this.props.onError?.();
   }
 
   render() {
@@ -98,12 +100,13 @@ const rooms = {
   "exam-forge": { theme: "control", name: "수학 문항 제작" },
 } as const;
 
-export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | "room" | "museum" | "modern" }) {
+export function ProjectExploration({ scene = "modern" }: { scene?: "museum" | "modern" }) {
   const [progress, setProgress] = useState(0);
   const [reduced, setReduced] = useState(true);
   const [selected, setSelected] = useState(0);
   const [roomOpen, setRoomOpen] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
+  const [sceneFailed, setSceneFailed] = useState(false);
   const [modernExhibit, setModernExhibit] = useState(0);
   const [exhibitRequest, setExhibitRequest] = useState<{ index: number } | null>(null);
   const [museumViewerOpen, setMuseumViewerOpen] = useState(false);
@@ -122,8 +125,9 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
   const room = rooms[preview.id];
   const CustomRoom = modern ? customRooms[preview.id as keyof typeof customRooms] : undefined;
   const onSceneReady = useCallback(() => setSceneReady(true), []);
-  const ActiveScene = scene === "room" ? RoomScene : Scene;
   const scenePaused = roomOpen || !galleryVisible;
+  // Not tied to "reduced": that starts true until the media query is read, which would flash a sharp poster.
+  const sceneLoading = !sceneReady && !sceneFailed;
 
   useLayoutEffect(() => {
     const element = dialog.current;
@@ -163,7 +167,8 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
       });
     };
     const syncMotion = () => {
-      setReduced(motion.matches);
+      // The modern gallery is the content itself, so it loads in 3D even with reduced motion on.
+      setReduced(!modern && motion.matches);
       if (!modern) update();
     };
     // Settle on an exhibit after each scroll gesture, moving one stop in the scroll direction.
@@ -226,20 +231,22 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
     <header className={styles.exploreNav} data-scene={scene}>
       <Link href="/">홈으로 돌아가기</Link>
       {!modern && <Link href="/explore" prefetch={false}>모던 갤러리</Link>}
-      {museum
-        ? <Link href="/explore?scene=gallery" prefetch={false}>기존 전시관</Link>
-        : <Link href="/explore?scene=museum" prefetch={false}>할빌 박물관</Link>}
+      {/* 할빌 박물관은 코드만 남겨 둠(/explore?scene=museum). 다시 보이려면 아래 줄 주석 해제
+      {modern && <Link href="/explore?scene=museum" prefetch={false}>할빌 박물관</Link>} */}
       {!modern && <Link href="/projects">전체 프로젝트 보기</Link>}
     </header>
     <div ref={stage} id="work" className={styles.galleryTrack} data-scene={scene}>
       <div ref={viewport} className={styles.galleryViewport} data-scene={scene}>
         {modern && (
-          <picture className={styles.galleryPoster}>
+          <picture className={styles.galleryPoster} data-loading={sceneLoading}>
             <source media="(max-aspect-ratio: 4/5)" srcSet="/project-media/modern-gallery-poster-portrait.webp" />
             <Image src="/project-media/modern-gallery-poster.webp" alt=""
               fill unoptimized loading="eager" fetchPriority="high" />
           </picture>
         )}
+        {!museum && sceneLoading && <div className={styles.galleryLoading} role="status">
+          <span className={styles.spinner} aria-hidden="true" />전시관을 불러오는 중
+        </div>}
         {museum ? (
           <div className={styles.museumPreview}>
             <Image src="/project-media/hallwyl-drawing-room.jpg" alt="할빌 박물관 응접실" fill sizes="100vw" preload />
@@ -248,17 +255,16 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
         ) : (
           <div className={styles.galleryCanvas} data-ready={sceneReady} aria-hidden="true">
             {!reduced && (
-              <SceneBoundary>
-                {modern ? <ModernScene images={modernGalleryImages}
+              <SceneBoundary onError={() => setSceneFailed(true)}>
+                <ModernScene images={modernGalleryImages}
                   onOpen={openPreview} onReady={onSceneReady} exhibitRequest={exhibitRequest}
                   paused={scenePaused} onExhibit={setModernExhibit} startIndex={modernExhibit} />
-                  : <ActiveScene progress={progress} images={galleryImages} onOpen={openPreview} onReady={onSceneReady} paused={scenePaused} />}
               </SceneBoundary>
             )}
           </div>
         )}
         <div className={styles.galleryIntro}>
-          <h1>{museum ? "할빌 박물관" : modern ? "모던 갤러리" : scene === "room" ? "거실에서 만나는 프로젝트" : "프로젝트 전시관"}</h1>
+          <h1>{museum ? "할빌 박물관" : "모던 갤러리"}</h1>
           {museum ? (
             <div className={styles.museumActions}>
               <button type="button" onClick={() => setMuseumViewerOpen((open) => !open)}>
@@ -266,13 +272,11 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
               </button>
               <a href={museumPage} target="_blank" rel="noreferrer">Erik Lernestål · Hallwyl Museum/SHM · CC BY</a>
             </div>
-          ) : <p>{modern
-            ? !reduced && sceneReady
-              ? <>바닥을 눌러 이동 · 그림을 눌러 상세 보기
-                <span className={styles.galleryDesktopHelp}><br />WASD / 방향키로 이동
-                  <br />휠로 확대·축소 · 우클릭 드래그로 시점 회전</span></>
-              : "화살표로 작품을 둘러보세요."
-            : "스크롤하거나 화살표로 이동하세요."}</p>}
+          ) : <p>{!reduced && sceneReady
+            ? <>바닥을 눌러 이동 · 그림을 눌러 상세 보기
+              <span className={styles.galleryDesktopHelp}><br />WASD / 방향키로 이동
+                <br />휠로 확대·축소 · 우클릭 드래그로 시점 회전</span></>
+            : "화살표로 작품을 둘러보세요."}</p>}
         </div>
         {modern && <Link href="/projects" className={styles.galleryDirectoryLink}>전체 프로젝트 <span aria-hidden="true">↗</span></Link>}
         <button ref={marker} type="button" className={styles.galleryMarker} data-mounted={!reduced && sceneReady}

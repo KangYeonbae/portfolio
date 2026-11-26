@@ -155,7 +155,13 @@
   height: max(27rem, calc(100svh - 5.25rem));
 }
 .galleryPoster { position: absolute; inset: 0; pointer-events: none; }
-.galleryPoster img { object-fit: cover; }
+.galleryPoster img { object-fit: cover; transition: filter .5s ease, transform .5s ease; }
+/* Blur the still poster while the 3D scene loads so it does not read as the live, clickable gallery */
+.galleryPoster[data-loading="true"] img { filter: blur(14px) brightness(.85); transform: scale(1.06); }
+.galleryLoading { position: absolute; inset: 0; z-index: 1; display: grid; place-content: center; justify-items: center; gap: .8rem; color: #fff; font-size: .92rem; font-weight: 600; text-shadow: 0 1px 8px #0008; pointer-events: none; }
+.spinner { width: 2.6rem; height: 2.6rem; border: 3px solid #ffffff4d; border-top-color: #fff; border-radius: 50%; animation: gallerySpin .8s linear infinite; }
+@keyframes gallerySpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
 .galleryCanvas { position: absolute; inset: 0; z-index: 0; transition: opacity .5s ease; }
 .galleryViewport[data-scene="modern"] .galleryCanvas { transition-duration: .28s; }
 .galleryCanvas[data-ready="false"] { opacity: 0; }
