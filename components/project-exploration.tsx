@@ -15,6 +15,7 @@ const RoomScene = dynamic(() => import("./apartment-scene"), { ssr: false });
 const ModernScene = dynamic(() => import("./modern-gallery-scene"), { ssr: false });
 const museumPage = "https://hallwylskamuseet.se/en/visit-us/visit-at-your-own-pace/the-great-drawing-room/";
 const modernGallerySource = "https://sketchfab.com/3d-models/art-gallery-720b507d814740278c713d100def4c99";
+const walkerSource = "https://sketchfab.com/3d-models/nathan-animated-003-walking-3d-man-143a2b1ea5eb4385ae90a73657aca3bc";
 
 class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
@@ -70,6 +71,8 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
   const [selected, setSelected] = useState(0);
   const [roomOpen, setRoomOpen] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
+  const [modernExhibit, setModernExhibit] = useState(0);
+  const [exhibitRequest, setExhibitRequest] = useState<{ index: number } | null>(null);
   const [museumViewerOpen, setMuseumViewerOpen] = useState(false);
   const stage = useRef<HTMLDivElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
@@ -79,12 +82,12 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
   const modern = scene === "modern";
   const stories = modern ? modernStories : galleryStories;
   const lastStop = stories.length - 1;
-  const active = Math.round(progress * lastStop);
+  const active = modern ? modernExhibit : Math.round(progress * lastStop);
   const exhibit = stories[active];
   const preview = stories[selected];
   const room = rooms[preview.id];
   const onSceneReady = useCallback(() => setSceneReady(true), []);
-  const ActiveScene = modern ? ModernScene : scene === "room" ? RoomScene : Scene;
+  const ActiveScene = scene === "room" ? RoomScene : Scene;
 
   useEffect(() => {
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -102,7 +105,7 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
     };
     const syncMotion = () => {
       setReduced(motion.matches);
-      update();
+      if (!modern) update();
     };
     // Settle on an exhibit after each scroll gesture, moving one stop in the scroll direction.
     let resting = 0;
@@ -125,8 +128,9 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
     };
     syncMotion();
     motion.addEventListener("change", syncMotion);
+    if (modern) return () => motion.removeEventListener("change", syncMotion);
     window.addEventListener("scroll", update, { passive: true });
-    if (!modern) window.addEventListener("scrollend", settle);
+    window.addEventListener("scrollend", settle);
     window.addEventListener("resize", update);
     return () => {
       motion.removeEventListener("change", syncMotion);
@@ -138,6 +142,11 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
   }, [lastStop, modern]);
 
   function goToExhibit(index: number) {
+    if (modern) {
+      if (reduced || !sceneReady) setModernExhibit(index);
+      else setExhibitRequest({ index });
+      return;
+    }
     const section = stage.current;
     if (!section || !viewport.current) return;
     const start = section.getBoundingClientRect().top + window.scrollY;
@@ -156,15 +165,13 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
   }
 
   return <main className={styles.exploration}>
-    <header className={styles.exploreNav}>
+    <header className={styles.exploreNav} data-scene={scene}>
       <Link href="/">홈으로 돌아가기</Link>
       {!modern && <Link href="/explore" prefetch={false}>모던 갤러리</Link>}
       {museum
         ? <Link href="/explore?scene=gallery" prefetch={false}>기존 전시관</Link>
         : <Link href="/explore?scene=museum" prefetch={false}>할빌 박물관</Link>}
-      {modern
-        ? <a href={modernGallerySource} target="_blank" rel="noreferrer">Art Gallery · Zeps3D · CC BY 4.0 · 수정하여 사용</a>
-        : <Link href="/projects">전체 프로젝트 보기</Link>}
+      {!modern && <Link href="/projects">전체 프로젝트 보기</Link>}
     </header>
     <div ref={stage} id="work" className={styles.galleryTrack} data-scene={scene}>
       <div ref={viewport} className={styles.galleryViewport} data-scene={scene}>
@@ -184,8 +191,10 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
           <div className={styles.galleryCanvas} data-ready={sceneReady} aria-hidden="true">
             {!reduced && (
               <SceneBoundary>
-                <ActiveScene progress={progress} images={modern ? modernGalleryImages : galleryImages}
-                  onOpen={openPreview} onReady={onSceneReady} />
+                {modern ? <ModernScene images={modernGalleryImages}
+                  onOpen={openPreview} onReady={onSceneReady} exhibitRequest={exhibitRequest}
+                  paused={roomOpen} onExhibit={setModernExhibit} startIndex={modernExhibit} />
+                  : <ActiveScene progress={progress} images={galleryImages} onOpen={openPreview} onReady={onSceneReady} />}
               </SceneBoundary>
             )}
           </div>
@@ -199,7 +208,11 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
               </button>
               <a href={museumPage} target="_blank" rel="noreferrer">Erik Lernestål · Hallwyl Museum/SHM · CC BY</a>
             </div>
-          ) : <p>스크롤하거나 화살표로 이동하세요.</p>}
+          ) : <p>{modern
+            ? !reduced && sceneReady
+              ? <>바닥을 눌러 이동 · 그림을 눌러 상세 보기<br />WASD / 방향키로 앞뒤·좌우 이동</>
+              : "화살표로 작품을 둘러보세요."
+            : "스크롤하거나 화살표로 이동하세요."}</p>}
         </div>
         {modern && <Link href="/projects" className={styles.galleryDirectoryLink}>전체 프로젝트 <span aria-hidden="true">↗</span></Link>}
         <button ref={marker} type="button" className={styles.galleryMarker} data-mounted={!reduced && sceneReady}
@@ -245,6 +258,10 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
       </div>
       </>}
     </dialog>
+    {modern && <footer className={styles.galleryCredits}>
+      <a href={modernGallerySource} target="_blank" rel="noreferrer">Art Gallery · Zeps3D · CC BY 4.0 · 수정하여 사용</a>
+      <a href={walkerSource} target="_blank" rel="noreferrer">Nathan · Renderpeople · CC BY 4.0 · 대기 모션 추가</a>
+    </footer>}
     {!modern && <>
  <div className={styles.stage}><div className={styles.storyContent}><div className={styles.chapterIntro}><p className={styles.eyebrow}>SELECTED WORK / 2025—2026</p><h2>문제와 해답 사이,<br /><em>제가 만든 것들.</em></h2><p>스크롤을 따라 제품 이야기를 만나보세요.</p></div>{stories.map((story, index) => <section id={`story-${story.id}`} className={styles.story} key={story.id}><div className={styles.storyCopy}><span className={styles.storyNumber}>{String(index + 1).padStart(2, "0")} <i>/ {String(stories.length).padStart(2, "0")}</i></span><p className={styles.eyebrow}>{story.label}</p><h2>{story.title}</h2><p>{story.text}</p><span className={styles.storyTags}>{story.tags}</span><Link className={styles.textLink} href={`/projects/${story.id}`}>프로젝트 자세히 보기 <span>↗</span></Link></div><Link href={`/projects/${story.id}`} className={styles.screen} aria-label={`${story.name} 상세 보기`}><div className={styles.screenBar}><span>● ● ●</span><span>{story.id}</span></div><div className={styles.screenImage} style={{ backgroundImage: `url('${story.media}')` }} /><div className={styles.screenCaption}><span>{story.label}</span><b>{String(index + 1).padStart(2, "0")} / {String(stories.length).padStart(2, "0")}</b></div></Link>{index === 0 && <div id="report-experiment" className={styles.reportExperiment}><ReportDemo /></div>}</section>)}</div></div>
     <footer className={styles.exploreEnd}>

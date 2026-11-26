@@ -1,42 +1,40 @@
 "use client";
 
-import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
-import { Suspense, useEffect, useMemo, useRef } from "react";
+import { Canvas, useLoader, useThree, type ThreeEvent } from "@react-three/fiber";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import {
-  CatmullRomCurve3, EquirectangularReflectionMapping, ExtrudeGeometry, MathUtils, Mesh, NeutralToneMapping,
-  Object3D, Path, PerspectiveCamera, ShaderMaterial, Shape, SRGBColorSpace, TextureLoader, Vector2, Vector3, type Texture,
+  EquirectangularReflectionMapping, ExtrudeGeometry, Mesh, NeutralToneMapping,
+  Object3D, Path, ShaderMaterial, Shape, SRGBColorSpace, TextureLoader, Vector2, type Texture, type Vector3,
 } from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { HDRLoader } from "three/examples/jsm/loaders/HDRLoader.js";
 
+import { GalleryWalker, walkerUrl } from "./gallery-walker";
+import { isGalleryFloor } from "./gallery-navigation";
+
 const modelUrl = "/project-media/modern-gallery.glb";
 const daylightUrl = "/project-media/gallery-daylight-1k.hdr";
+const galleryModels = [modelUrl, walkerUrl];
 
 type Point = [number, number, number];
 type View = { eye: Point; target: Point };
 type SceneProps = {
-  progress: number;
   images: string[];
   onOpen: (index: number) => void;
   onReady: () => void;
+  startIndex: number;
+  exhibitRequest: { index: number } | null;
+  paused: boolean;
+  onExhibit: (index: number) => void;
 };
 
-const initial: View = { eye: [.65, 1.56, -6.6], target: [5.7, 2.03, 2.1] };
+const initial: View = { eye: [1.65, 1.56, -3.9], target: [5.7, 2.03, 2.1] };
 const statueWall: View = { eye: [3.55, 1.55, -1.52], target: [-.28, 1.65, -.72] };
 const northWall: View = { eye: [5.05, 1.55, -3.55], target: [4.96, 1.62, -7.46] };
 const lowerHall: View = { eye: [14.85, -.58, -3.3], target: [17.2, -.52, -7.46] };
 const eastWall: View = { eye: [17.85, -.58, 3.85], target: [18.9, -.48, 7.46] };
 
-const paths: View[][] = [
-  [initial, { eye: [2.0, 1.55, -4.55], target: [3.6, 1.95, -.7] }, statueWall],
-  [statueWall, { eye: [4.25, 1.55, -2.15], target: [2.1, 1.72, -5.6] }, northWall],
-  [northWall, { eye: [8.48, 1.54, -5.18], target: [15.5, 1.95, -3.2] },
-    { eye: [10.55, 1.19, -5.44], target: [19.4, 1.55, -2.85] },
-    { eye: [12.18, .22, -5.5], target: [19.8, 1.3, -2.65] },
-    { eye: [13.7, -.58, -5.25], target: [20, 1.2, -4.55] }, lowerHall],
-  [lowerHall, { eye: [17.55, -.58, -3.65], target: [20.46, 1.36, -.9] },
-    { eye: [18.63, -.58, -.55], target: [20.45, .75, 4.2] }, eastWall],
-];
+const stops = [initial, statueWall, northWall, lowerHall, eastWall];
 
 const frames: { center: Point; angle: number; width: number; maxHeight: number }[] = [
   { center: [7.18, 1.7, 7.45], angle: Math.PI, width: 3, maxHeight: 1.65 },
@@ -54,55 +52,6 @@ const paneFaces = {
   ceiling_walls_0: new Set([34, 35, 86, 87, 90, 91, 92, 93, 114, 115, 116, 117,
     124, 125, 126, 127, 136, 137, 150, 151, 152, 153, 154, 155]),
 };
-
-function GalleryCamera({ progress }: { progress: number }) {
-  const getState = useThree((state) => state.get);
-  const { width, height } = useThree((state) => state.size);
-  const smoothProgress = useRef(progress);
-  const { segments, angles } = useMemo(() => ({
-    segments: paths.map((path) => {
-      let yaw: number | undefined;
-      const rotations = path.map(({ eye, target }) => {
-        const direction = new Vector3(...target).sub(new Vector3(...eye));
-        const heading = Math.atan2(-direction.x, -direction.z);
-        yaw = yaw === undefined
-          ? heading
-          : yaw + MathUtils.euclideanModulo(heading - yaw + Math.PI, 2 * Math.PI) - Math.PI;
-        const pitch = Math.atan2(direction.y, Math.hypot(direction.x, direction.z));
-        return new Vector3(pitch, yaw, 0);
-      });
-      return {
-        eye: new CatmullRomCurve3(path.map((view) => new Vector3(...view.eye))),
-        rotation: new CatmullRomCurve3(rotations, false, "catmullrom", .38),
-      };
-    }),
-    angles: new Vector3(),
-  }), []);
-
-  useEffect(() => {
-    const { camera } = getState();
-    if (!(camera instanceof PerspectiveCamera) || !width || !height) return;
-    const portraitFov = MathUtils.radToDeg(2 * Math.atan(Math.tan(MathUtils.degToRad(24)) * height / width));
-    camera.fov = Math.max(57, portraitFov);
-    camera.updateProjectionMatrix();
-  }, [getState, width, height]);
-
-  useFrame(({ camera }, delta) => {
-    smoothProgress.current = Math.abs(progress - smoothProgress.current) < .0001
-      ? progress
-      : MathUtils.damp(smoothProgress.current, progress, 9, Math.min(delta, .08));
-    const step = smoothProgress.current * segments.length;
-    const index = Math.min(Math.floor(step), segments.length - 1);
-    const segment = segments[index];
-    const distance = MathUtils.smoothstep(step - index, 0, 1);
-    const t = segment.eye.getUtoTmapping(distance, 0);
-    segment.eye.getPoint(t, camera.position);
-    segment.rotation.getPoint(t, angles);
-    camera.rotation.set(angles.x, angles.y, 0, "YXZ");
-  });
-
-  return null;
-}
 
 function WindowLight({ position, aim, intensity }: { position: Point; aim: Point; intensity: number }) {
   const target = useMemo(() => new Object3D(), []);
@@ -151,7 +100,7 @@ function ProjectArtwork({ index, texture, onOpen }: {
   return (
     <group position={frame.center} rotation={[0, frame.angle, 0]} onClick={(event) => {
       event.stopPropagation();
-      onOpen(index);
+      if (event.delta < 8) onOpen(index);
     }}>
       <mesh geometry={wood} castShadow receiveShadow position={[0, 0, .023]}>
         <meshStandardMaterial color="#674936" roughness={.63} />
@@ -195,8 +144,9 @@ function ProjectArtwork({ index, texture, onOpen }: {
   );
 }
 
-function Gallery({ progress, images, onOpen, onReady }: SceneProps) {
-  const { scene } = useLoader(GLTFLoader, modelUrl);
+function Gallery({ images, onOpen, onReady, ...navigation }: SceneProps) {
+  const [{ scene }, walker] = useLoader(GLTFLoader, galleryModels);
+  const [destination, setDestination] = useState<Vector3 | null>(null);
   const daylight = useLoader(HDRLoader, daylightUrl);
   const sourceTextures = useLoader(TextureLoader, images);
   const textures = useMemo(() => sourceTextures.map((source) => {
@@ -290,11 +240,14 @@ function Gallery({ progress, images, onOpen, onReady }: SceneProps) {
       <WindowLight position={[3.4, 5.6, -1.65]} aim={[1.05, -.06, 3.4]} intensity={75} />
       <WindowLight position={[17.2, 5.3, -.6]} aim={[13.35, -2.2, 4.65]} intensity={92} />
       <WindowLight position={[20.1, 2.45, 1.25]} aim={[15.7, -2.2, .35]} intensity={54} />
-      <primitive object={building} />
+      <primitive object={building} onClick={(event: ThreeEvent<MouseEvent>) => {
+        event.stopPropagation();
+        if (event.delta < 8 && isGalleryFloor(event.object.name)) setDestination(event.point.clone());
+      }} />
       {textures.map((texture, index) => (
         <ProjectArtwork key={images[index]} index={index} texture={texture} onOpen={onOpen} />
       ))}
-      <GalleryCamera progress={progress} />
+      <GalleryWalker stops={stops} building={building} model={walker} destination={destination} {...navigation} />
     </>
   );
 }
