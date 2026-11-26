@@ -160,6 +160,9 @@
 .galleryViewport[data-scene="modern"] .galleryCanvas { transition-duration: .28s; }
 .galleryCanvas[data-ready="false"] { opacity: 0; }
 .galleryCanvas canvas { touch-action: pan-y; }
+.galleryCanvas canvas[data-gallery-cursor="floor"] { cursor: crosshair; }
+.galleryCanvas canvas[data-gallery-cursor="artwork"] { cursor: pointer; }
+.galleryCanvas canvas[data-orbiting] { cursor: grabbing; }
 .galleryIntro { position: absolute; z-index: 1; top: 7%; left: 6%; pointer-events: none; }
 .galleryIntro h1 { margin: 0 0 .5rem; font-size: clamp(1.8rem, 4vw, 3.5rem); }
 .galleryIntro p { margin: 0; color: #584b3e; }
@@ -192,6 +195,9 @@
 @media (max-width: 520px) {
   .galleryViewport[data-scene="modern"] .galleryIntro { max-width: 57%; }
   .galleryViewport[data-scene="modern"] .galleryIntro p { font-size: .8rem; }
+}
+@media (hover: none) and (pointer: coarse) {
+  .galleryDesktopHelp { display: none; }
 }
 .museumPreview, .museumPreview iframe { position: absolute; inset: 0; width: 100%; height: 100%; }
 .museumPreview img { object-fit: cover; }

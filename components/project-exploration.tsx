@@ -4,6 +4,7 @@ import { Component, useCallback, useEffect, useRef, useState, type ReactNode } f
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
+import { projects } from "@/data/projects";
 import { DubbyRoom } from "./dubby-room";
 import { ByeoljariRoom } from "./byeoljari-room";
 import { galleryImages } from "./gallery-layout";
@@ -42,8 +43,16 @@ const galleryStories = [
  { id: "dubby", name: "Dubby", label: "SOCIAL / MESSENGER", title: "대화하다가\n같이 게임하는 곳.", text: "1:1과 그룹 채팅, 스토리, 투표, 카드게임을 한 앱에 담은 소셜 메신저입니다.", tags: "FLUTTER / FIREBASE / REALTIME", media: "/project-media/dubby.jpg" },
 ] as const;
 
+function portfolioStory<const Id extends string>(id: Id, media: string) {
+  const project = projects.find((item) => item.id === id);
+  return {
+    id, media, name: project?.title ?? id, label: project?.eyebrow ?? "",
+    title: project?.title ?? id, text: project?.summary ?? "", tags: project?.tags.join(" / ") ?? "",
+  };
+}
+
 const modernStories = [
-  galleryStories[0],
+  galleryStories[2],
   {
     id: "local-browser-agent",
     name: "Local Browser Agent",
@@ -53,7 +62,12 @@ const modernStories = [
     tags: "OLLAMA / LANGGRAPH / PLAYWRIGHT",
     media: "/project-media/local-browser-agent.png",
   },
-  ...galleryStories.slice(1),
+  galleryStories[1],
+  galleryStories[0],
+  galleryStories[3],
+  portfolioStory("snap-p", "/project-media/snap-p.webp"),
+  portfolioStory("voc-analyzer", "/project-media/voc-collector.webp"),
+  portfolioStory("exam-forge", "/project-media/exam-forge.webp"),
 ] as const;
 const modernGalleryImages = modernStories.map((story) => story.media);
 
@@ -63,6 +77,9 @@ const rooms = {
   byeoljari: { theme: "observatory", name: "별자리 관측실" },
   dubby: { theme: "dubby", name: "Dubby 라운지" },
   "local-browser-agent": { theme: "control", name: "로컬 AI 작업실" },
+  "snap-p": { theme: "control", name: "상품 콘텐츠 제작" },
+  "voc-analyzer": { theme: "control", name: "상담 데이터 분석" },
+  "exam-forge": { theme: "control", name: "수학 문항 제작" },
 } as const;
 
 export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | "room" | "museum" | "modern" }) {
@@ -210,7 +227,9 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
             </div>
           ) : <p>{modern
             ? !reduced && sceneReady
-              ? <>바닥을 눌러 이동 · 그림을 눌러 상세 보기<br />WASD / 방향키로 앞뒤·좌우 이동</>
+              ? <>바닥을 눌러 이동 · 그림을 눌러 상세 보기
+                <span className={styles.galleryDesktopHelp}><br />WASD / 방향키로 이동
+                  <br />휠로 확대·축소 · 우클릭 드래그로 시점 회전</span></>
               : "화살표로 작품을 둘러보세요."
             : "스크롤하거나 화살표로 이동하세요."}</p>}
         </div>
@@ -219,7 +238,7 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
           aria-haspopup="dialog" onClick={() => openPreview(active)}>
           {(reduced || !sceneReady) && <Image src={exhibit.media} alt="" width={192} height={108} sizes="192px" />}
           <span>{exhibit.name}</span>
-          <span className={styles.galleryOpen}>보기 <span aria-hidden="true">↗</span></span>
+          <span className={styles.galleryOpen}>{modern ? "작품 보기" : "보기"} <span aria-hidden="true">↗</span></span>
         </button>
         <nav className={styles.galleryControls} aria-label="전시관 이동">
           <button type="button" disabled={active === 0} onClick={() => goToExhibit(active - 1)} aria-label="이전 프로젝트">←</button>

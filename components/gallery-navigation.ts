@@ -20,7 +20,7 @@ export function createGalleryNavigation(building: Object3D) {
   building.traverse((object) => {
     if (!(object instanceof Mesh)) return;
     const floor = isGalleryFloor(object.name);
-    if (!floor && !/^(walls_|Window_details_|Doors_details_|corner_details_|chairs_|stand_|Statue_|tree)/i.test(object.name)) return;
+    if (!floor && !/^(walls_|ceiling_|Window_details_|Doors_details_|corner_details_|chairs_|stand_|Statue_|tree)/i.test(object.name)) return;
     const tree = floor ? floors : blockers;
     const positions = object.geometry.getAttribute("position");
     const indices = object.geometry.getIndex();

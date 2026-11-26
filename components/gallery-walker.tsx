@@ -1,7 +1,7 @@
 "use client";
 
 import { useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   AnimationClip, AnimationMixer, CanvasTexture, Group, MathUtils,
   PerspectiveCamera, Quaternion, QuaternionKeyframeTrack,
@@ -17,6 +17,7 @@ type View = { eye: Point; target: Point };
 
 const xAxis = new Vector3(1, 0, 0);
 const walkSpeed = 1.65;
+const initialZoom = 3.3;
 const keysByCode: Record<string, string> = {
   KeyW: "forward", ArrowUp: "forward", KeyS: "back", ArrowDown: "back",
   KeyA: "left", ArrowLeft: "left", KeyD: "right", ArrowRight: "right",
@@ -74,6 +75,8 @@ function createMotion(source: AnimationClip) {
 
 type WalkerProps = {
   stops: View[];
+  entrance: View;
+  onActor: (group: Group | null) => void;
   building: Object3D;
   model: GLTF;
   startIndex: number;
@@ -83,12 +86,18 @@ type WalkerProps = {
   onExhibit: (index: number) => void;
 };
 
-export function GalleryWalker({ stops, building, model, startIndex, destination, exhibitRequest, paused, onExhibit }: WalkerProps) {
+export function GalleryWalker({ stops, entrance, onActor, building, model, startIndex, destination, exhibitRequest, paused, onExhibit }: WalkerProps) {
   const { scene, animations } = model;
   const { width, height } = useThree((state) => state.size);
-  const getState = useThree((state) => state.get);
   const canvas = useThree((state) => state.gl.domElement);
+  const aspect = width / Math.max(height, 1);
+  const portraitFov = MathUtils.radToDeg(2 * Math.atan(Math.tan(MathUtils.degToRad(24)) / Math.max(aspect, .01)));
+  const baseFov = Math.min(94, Math.max(57, portraitFov));
   const actor = useRef<Group>(null);
+  const mountActor = useCallback((group: Group | null) => {
+    actor.current = group;
+    onActor(group);
+  }, [onActor]);
   const avatar = useMemo(() => clone(scene), [scene]);
   const motion = useMemo(() => createMotion(animations[0]), [animations]);
   const navigation = useMemo(() => createGalleryNavigation(building), [building]);
@@ -99,14 +108,16 @@ export function GalleryWalker({ stops, building, model, startIndex, destination,
     return { mixer, idle: mixer.clipAction(motion.idle), walk: mixer.clipAction(motion.walk) };
   }, [avatar, motion]);
   const pressed = useRef(new Set<string>());
+  const cameraInput = useRef({ zoom: initialZoom, yaw: 0, pitch: 0 });
   const state = useRef({
     initialized: false, activeExhibit: startIndex, exhibitRequest,
     destination: null as Vector3 | null, path: [] as Vector3[], heading: 0, cameraHeading: 0,
     walking: false, pathStop: null as View | null,
+    cameraFloor: 0, cameraArm: initialZoom, zoom: initialZoom, orbitYaw: 0, orbitPitch: 0,
   });
   const scratch = useRef({
     position: new Vector3(), sample: new Vector3(), direction: new Vector3(), aim: new Vector3(),
-    eye: new Vector3(), idealEye: new Vector3(), cameraAnchor: new Vector3(), goal: new Vector3(),
+    cameraAnchor: new Vector3(), goal: new Vector3(),
   });
 
   useEffect(() => {
@@ -114,14 +125,6 @@ export function GalleryWalker({ stops, building, model, startIndex, destination,
     return () => { animation.mixer.stopAllAction(); };
   }, [animation]);
   useEffect(() => () => contactShadow.dispose(), [contactShadow]);
-  useEffect(() => {
-    const { camera } = getState();
-    if (!(camera instanceof PerspectiveCamera) || !width || !height) return;
-    const portraitFov = MathUtils.radToDeg(2 * Math.atan(Math.tan(MathUtils.degToRad(24)) * height / width));
-    camera.fov = Math.min(94, Math.max(57, portraitFov));
-    camera.updateProjectionMatrix();
-  }, [getState, width, height]);
-
   useEffect(() => {
     const held = pressed.current;
     const codeFor = (event: KeyboardEvent) => [event.code, "Key" + event.key.toUpperCase(), event.key]
@@ -159,11 +162,63 @@ export function GalleryWalker({ stops, building, model, startIndex, destination,
     };
   }, [canvas, paused]);
 
+  useEffect(() => {
+    if (paused) return;
+    let pointer: { id: number; x: number; y: number } | null = null;
+    function wheel(event: WheelEvent) {
+      if (event.ctrlKey || event.metaKey || event.deltaY === 0) return;
+      event.preventDefault();
+      const pixels = event.deltaMode === 1 ? event.deltaY * 16
+        : event.deltaMode === 2 ? event.deltaY * canvas.clientHeight : event.deltaY;
+      const input = cameraInput.current;
+      input.zoom = MathUtils.clamp(input.zoom + pixels * .004, 2.25, 6.5);
+    }
+    function pointerDown(event: PointerEvent) {
+      if (event.button !== 2) return;
+      pointer = { id: event.pointerId, x: event.clientX, y: event.clientY };
+      canvas.setPointerCapture(event.pointerId);
+      canvas.dataset.orbiting = "";
+    }
+    function pointerMove(event: PointerEvent) {
+      if (pointer?.id !== event.pointerId) return;
+      const input = cameraInput.current;
+      input.yaw = MathUtils.euclideanModulo(input.yaw - (event.clientX - pointer.x) * .006 + Math.PI, Math.PI * 2) - Math.PI;
+      input.pitch = MathUtils.clamp(input.pitch + (event.clientY - pointer.y) * .005, -.23, .56);
+      pointer.x = event.clientX;
+      pointer.y = event.clientY;
+    }
+    function endDrag(event?: PointerEvent) {
+      if (!pointer || (event && pointer.id !== event.pointerId)) return;
+      const id = pointer.id;
+      pointer = null;
+      delete canvas.dataset.orbiting;
+      if (canvas.hasPointerCapture(id)) canvas.releasePointerCapture(id);
+    }
+    const hideMenu = (event: MouseEvent) => event.preventDefault();
+    canvas.addEventListener("wheel", wheel, { passive: false });
+    canvas.addEventListener("pointerdown", pointerDown);
+    canvas.addEventListener("pointermove", pointerMove);
+    canvas.addEventListener("pointerup", endDrag);
+    canvas.addEventListener("pointercancel", endDrag);
+    canvas.addEventListener("lostpointercapture", endDrag);
+    canvas.addEventListener("contextmenu", hideMenu);
+    return () => {
+      endDrag();
+      canvas.removeEventListener("wheel", wheel);
+      canvas.removeEventListener("pointerdown", pointerDown);
+      canvas.removeEventListener("pointermove", pointerMove);
+      canvas.removeEventListener("pointerup", endDrag);
+      canvas.removeEventListener("pointercancel", endDrag);
+      canvas.removeEventListener("lostpointercapture", endDrag);
+      canvas.removeEventListener("contextmenu", hideMenu);
+    };
+  }, [canvas, paused]);
+
   useFrame(({ camera }, elapsed) => {
     if (!actor.current || paused) return;
     const dt = Math.min(elapsed, .075);
     const current = state.current;
-    const { position, sample, direction, aim, eye, idealEye, cameraAnchor, goal } = scratch.current;
+    const { position, sample, direction, aim, cameraAnchor, goal } = scratch.current;
     let targetHeading = current.heading;
     let viewHeading = current.cameraHeading;
     let walkingDistance = 0;
@@ -177,9 +232,13 @@ export function GalleryWalker({ stops, building, model, startIndex, destination,
     const strafe = Number(has("left")) - Number(has("right"));
 
     if (!current.initialized) {
-      const stop = stops[current.activeExhibit];
+      const stop = current.activeExhibit === 0 ? entrance : stops[current.activeExhibit];
       placeAtStop(stop.eye, position, navigation.floorAt);
       targetHeading = viewHeading = Math.atan2(stop.target[0] - position.x, stop.target[2] - position.z);
+      if (stop === entrance) {
+        viewHeading -= .6 * (1 - MathUtils.smoothstep(aspect, .56, .95));
+        targetHeading = viewHeading;
+      }
     }
 
     if (destination !== current.destination || exhibitRequest !== current.exhibitRequest) {
@@ -194,17 +253,16 @@ export function GalleryWalker({ stops, building, model, startIndex, destination,
     if (forward || strafe) {
       current.path = [];
       current.pathStop = null;
-      const angle = current.cameraHeading;
+      const angle = current.cameraHeading + current.orbitYaw;
       direction.set(Math.sin(angle) * forward + Math.cos(angle) * strafe, 0,
         Math.cos(angle) * forward - Math.sin(angle) * strafe).normalize();
-      const distance = dt * walkSpeed * (forward < 0 && !strafe ? .7 : 1);
+      const distance = dt * walkSpeed;
       sample.copy(position).addScaledVector(direction, distance);
       const floor = navigation.step(position, sample);
       if (floor !== undefined) {
         position.set(sample.x, floor, sample.z);
-        const backwards = forward < 0 && !strafe;
-        targetHeading = backwards ? angle : Math.atan2(direction.x, direction.z);
-        walkingDistance = backwards ? -distance : distance;
+        targetHeading = Math.atan2(direction.x, direction.z);
+        walkingDistance = distance;
       }
     } else if (current.path.length) {
       const next = current.path[0];
@@ -252,8 +310,8 @@ export function GalleryWalker({ stops, building, model, startIndex, destination,
     const snap = !current.initialized;
     const dampAngle = (from: number, to: number, rate: number) => snap ? to
       : from + (MathUtils.euclideanModulo(to - from + Math.PI, 2 * Math.PI) - Math.PI) * (1 - Math.exp(-rate * dt));
-    current.heading = dampAngle(current.heading, targetHeading, 12);
-    current.cameraHeading = dampAngle(current.cameraHeading, viewHeading, 7);
+    current.heading = dampAngle(current.heading, targetHeading, 15);
+    current.cameraHeading = dampAngle(current.cameraHeading, viewHeading, 4.8);
     actor.current.position.copy(position);
     actor.current.rotation.y = current.heading;
 
@@ -267,26 +325,42 @@ export function GalleryWalker({ stops, building, model, startIndex, destination,
     }
     if (walking) {
       const speed = MathUtils.clamp(Math.abs(walkingDistance) / Math.max(dt, .001) / walkSpeed, .65, 2.1);
-      animation.walk.setEffectiveTimeScale(speed * Math.sign(walkingDistance));
+      animation.walk.setEffectiveTimeScale(speed);
     }
     animation.mixer.update(dt);
 
-    const heading = current.cameraHeading;
+    const input = cameraInput.current;
+    current.cameraFloor = snap ? position.y : MathUtils.damp(current.cameraFloor, position.y, 5.2, dt);
+    current.orbitYaw = dampAngle(current.orbitYaw, input.yaw, 17);
+    current.orbitPitch = MathUtils.damp(current.orbitPitch, input.pitch, 17, dt);
+    current.zoom = MathUtils.damp(current.zoom, input.zoom, 9, dt);
+    const heading = current.cameraHeading + current.orbitYaw;
     const forwardX = Math.sin(heading);
     const forwardZ = Math.cos(heading);
-    cameraAnchor.set(position.x, position.y + 1.36, position.z);
-    idealEye.set(position.x - forwardX * 3.1 - forwardZ * .28, position.y + 2.48, position.z - forwardZ * 3.1 + forwardX * .28);
-    direction.copy(idealEye).sub(cameraAnchor);
+    const tilt = .346 + current.orbitPitch;
+    const horizontal = Math.cos(tilt) * current.zoom;
+    cameraAnchor.set(position.x, current.cameraFloor + 1.36, position.z);
+    direction.set(-forwardX * horizontal - forwardZ * .28, Math.sin(tilt) * current.zoom,
+      -forwardZ * horizontal + forwardX * .28);
     const eyeDistance = direction.length();
     direction.divideScalar(eyeDistance);
-    const obstruction = navigation.cameraDistance(cameraAnchor, direction, eyeDistance + .16);
-    const safeDistance = obstruction === undefined ? eyeDistance : Math.max(.12, obstruction - .16);
-    idealEye.copy(cameraAnchor).addScaledVector(direction, safeDistance);
-    eye.copy(idealEye);
-    if (!snap && !obstruction) eye.y = MathUtils.damp(camera.position.y, idealEye.y, 14, dt);
-    camera.position.copy(eye);
-    const lookAhead = obstruction === undefined ? 2.1 : 1.45;
-    aim.set(position.x + forwardX * lookAhead, position.y + (obstruction === undefined ? .84 : 1.22),
+    const obstruction = navigation.cameraDistance(cameraAnchor, direction, eyeDistance + .45);
+    const targetArm = Math.min(eyeDistance, Math.max(.12, (obstruction ?? Infinity) - .42));
+    current.cameraArm = snap ? targetArm
+      : MathUtils.damp(current.cameraArm, targetArm, targetArm < current.cameraArm ? 15 : 5.5, dt);
+    const safeDistance = Math.min(current.cameraArm, Math.max(.12, (obstruction ?? Infinity) - .12));
+    camera.position.copy(cameraAnchor).addScaledVector(direction, safeDistance);
+    if (camera instanceof PerspectiveCamera) {
+      const constrainedZoom = Math.max(0, Math.min(current.zoom - initialZoom, eyeDistance - safeDistance));
+      const fov = Math.min(105, baseFov + constrainedZoom * 6);
+      if (Math.abs(camera.fov - fov) > .02) {
+        camera.fov = fov;
+        camera.updateProjectionMatrix();
+      }
+    }
+    const framing = MathUtils.smoothstep(safeDistance, .55, initialZoom);
+    const lookAhead = MathUtils.lerp(.85, 2.1, framing);
+    aim.set(position.x + forwardX * lookAhead, current.cameraFloor + MathUtils.lerp(1.25, .84, framing),
       position.z + forwardZ * lookAhead);
     camera.lookAt(aim);
     actor.current.visible = safeDistance > .53;
@@ -294,7 +368,7 @@ export function GalleryWalker({ stops, building, model, startIndex, destination,
   });
 
   return <>
-    <group ref={actor}>
+    <group ref={mountActor}>
       <primitive object={avatar} scale={.01} />
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, .015, 0]}>
         <planeGeometry args={[.85, .85]} />
