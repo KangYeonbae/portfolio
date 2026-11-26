@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type Ref } from "react";
 import styles from "./report-room.module.css";
 
 // Sample data only: campaign names and figures are invented for the demo.
@@ -13,6 +13,7 @@ const rows = [
 ] as const;
 const total = { spend: 1200, sales: 3200 };
 const roas = (spend: number, sales: number) => (sales / spend).toFixed(2);
+const currency = (value: number) => `$${value.toLocaleString("en-US")}`;
 
 type Kind = "money" | "name" | "roas";
 type Token = { kind: Kind; text: string; fix?: string };
@@ -27,7 +28,7 @@ const tokens = draft.filter((part): part is Token => typeof part !== "string");
 
 // Like the real fact_guard: a value passes only if it exists in the set built from the source rows.
 const allowed: Record<Kind, Set<string>> = {
-  money: new Set([...rows.flatMap((row) => [row.spend, row.sales]), total.spend, total.sales].map((value) => `$${value.toLocaleString("en-US")}`)),
+  money: new Set([...rows.flatMap((row) => [row.spend, row.sales]), total.spend, total.sales].map(currency)),
   name: new Set(rows.map((row) => row.name)),
   roas: new Set([...rows.map((row) => roas(row.spend, row.sales)), roas(total.spend, total.sales)]),
 };
@@ -39,8 +40,8 @@ const reasons: Record<Kind, [string, string]> = {
 
 const stages = ["수집 · BigQuery", "작성 · AI", "숫자 대조 · 코드", "교정 · AI", "최종 검수 · 코드"] as const;
 const architecture = [
-  ["BigQuery", "수집"], ["Worker", "초안 작성"], ["fact_guard", "숫자 대조"],
-  ["style_editor", "교정"], ["report_qa_agent", "최종 검수"],
+  ["BigQuery", "수집"], ["Worker", "작성"], ["fact_guard", "대조"],
+  ["style_editor", "교정"], ["report_qa_agent", "검수"],
 ] as const;
 type Phase = "idle" | "collect" | "writing" | "checking" | "fixing" | "final" | "verified" | "done";
 const order: Phase[] = ["idle", "collect", "writing", "checking", "fixing", "final", "verified", "done"];
@@ -90,39 +91,91 @@ function ManualDraft({ playing }: { playing: boolean }) {
   </>;
 }
 
+function WeeklyReport({ report, onRun }: { report: Ref<HTMLDivElement>; onRun: () => void }) {
+  const [brand, automatic, product] = rows;
+  const percent = (value: number, sum: number) => Math.round((value / sum) * 100);
+
+  return <div ref={report} className={styles.reportScroll} tabIndex={0} role="region" aria-label="완성된 주간 광고 보고서. 아래로 스크롤해 전체 내용을 읽을 수 있습니다.">
+    <article className={styles.report}>
+      <header>
+        <h2>주간 광고 성과 보고서</h2>
+        <p>샘플 데이터 <span aria-hidden="true">· 아래로 스크롤 ↓</span></p>
+      </header>
+      <dl className={styles.metrics}>
+        <div><dt>총 광고비</dt><dd>{currency(total.spend)}</dd></div>
+        <div><dt>광고 매출</dt><dd>{currency(total.sales)}</dd></div>
+        <div><dt>전체 ROAS</dt><dd>{roas(total.spend, total.sales)}배</dd></div>
+      </dl>
+
+      <h3>성과 요약</h3>
+      <p>이번 주에는 광고비 {currency(total.spend)}로 광고 매출 {currency(total.sales)}을 기록했습니다. 브랜드 검색은 전체 광고비의 {percent(brand.spend, total.spend)}%를 사용해 광고 매출의 약 {percent(brand.sales, total.sales)}%를 만들었습니다. 세 캠페인 중 매출과 ROAS가 가장 높았습니다.</p>
+
+      <h3>캠페인별 실적</h3>
+      <table aria-label="캠페인별 광고비, 매출 및 ROAS">
+        <thead><tr><th scope="col">캠페인</th><th scope="col">광고비</th><th scope="col">매출</th><th scope="col">ROAS</th></tr></thead>
+        <tbody>{rows.map((row) => <tr key={row.name}>
+          <th scope="row">{row.name}</th><td>{currency(row.spend)}</td><td>{currency(row.sales)}</td><td>{roas(row.spend, row.sales)}</td>
+        </tr>)}</tbody>
+      </table>
+
+      <h3>캠페인별 해석</h3>
+      <p><strong>{brand.name}</strong>은 광고비 {currency(brand.spend)}로 매출 {currency(brand.sales)}을 만들었습니다. ROAS가 {roas(brand.spend, brand.sales)}배로 전체 평균보다 높았습니다.</p>
+      <p><strong>{automatic.name}</strong>은 세 캠페인 중 가장 많은 광고비({currency(automatic.spend)})를 사용했습니다. 매출은 {currency(automatic.sales)}, ROAS는 {roas(automatic.spend, automatic.sales)}배로 전체 평균보다 낮았습니다.</p>
+      <p><strong>{product.name}</strong>은 광고비 {currency(product.spend)}로 매출 {currency(product.sales)}을 기록했습니다. ROAS가 {roas(product.spend, product.sales)}배로 세 캠페인 중 가장 낮았습니다.</p>
+
+      <h3>다음 주에 확인할 항목</h3>
+      <ul>
+        <li>브랜드 검색의 검색어별 유입과 매출을 확인해 실적을 주도한 검색어를 파악합니다.</li>
+        <li>자동 타기팅은 검색어별 지출과 주문을 대조해 광고비가 집중된 구간을 찾습니다.</li>
+        <li>상품 타기팅은 광고가 노출된 상품별로 지출과 매출을 확인한 뒤 입찰 조정 여부를 판단합니다.</li>
+      </ul>
+
+      <footer>
+        <p>최종 검수 통과 · 원본 캠페인명, 금액, ROAS 대조 완료</p>
+        <button type="button" onClick={onRun} className={styles.run}>보고서 만들기</button>
+      </footer>
+    </article>
+  </div>;
+}
+
 export default function ReportRoom() {
+  const [scene, setScene] = useState<"night" | "later" | "day">("night");
   const [phase, setPhase] = useState<Phase>("idle");
   const [checked, setChecked] = useState(0);
   const [focus, setFocus] = useState<string | null>(null);
   const [paused, setPaused] = useState(false);
-  const [repeat, setRepeat] = useState(false);
   const reduced = useSyncExternalStore(subscribeMotion, () => window.matchMedia(motionQuery).matches, () => true);
-  const action = useRef<HTMLButtonElement>(null);
   const screen = useRef<HTMLDivElement>(null);
+  const report = useRef<HTMLDivElement>(null);
   const fixed = phase === "final" || phase === "verified" || phase === "done";
-  const morning = phase === "done";
-  const daylight = morning || repeat;
+  const done = phase === "done";
+  const daylight = scene !== "night";
   const busy = phase !== "idle" && phase !== "done";
+
+  useEffect(() => {
+    if (scene === "day" || paused) return;
+    const timer = window.setTimeout(() => setScene(scene === "night" ? "later" : "day"), scene === "night" ? 6200 : 1300);
+    return () => window.clearTimeout(timer);
+  }, [scene, paused]);
 
   useEffect(() => {
     if (!busy) return;
     const timer = window.setTimeout(() => {
       if (phase === "checking" && checked < tokens.length) setChecked(reduced ? tokens.length : checked + 1);
       else setPhase(order[order.indexOf(phase) + 1]);
-    }, reduced ? 0 : delays[phase]);
+    }, delays[phase]);
     return () => window.clearTimeout(timer);
   }, [busy, phase, checked, reduced]);
 
   useEffect(() => {
-    if (morning && document.activeElement === screen.current) action.current?.focus({ preventScroll: true });
-  }, [morning]);
+    if (done && document.activeElement === screen.current) report.current?.focus({ preventScroll: true });
+  }, [done]);
 
   function run() {
-    if (busy) return;
+    if (scene !== "day" || busy) return;
     screen.current?.focus({ preventScroll: true });
     setChecked(0);
     setFocus(null);
-    setRepeat(morning);
     setPhase("collect");
   }
 
@@ -150,17 +203,20 @@ export default function ReportRoom() {
       </div>
     </header>
 
-    <section className={styles.hero} aria-label="마케터의 보고서 작성 장면" data-busy={busy} data-phase={phase} data-paused={paused} data-daylight={daylight}>
+    <section className={styles.hero} aria-label="마케터의 보고서 작성 장면" data-phase={phase} data-scene={scene} data-paused={paused} data-daylight={daylight}>
       <div className={styles.camera}>
         <Image src="/project-media/amazon-scene-night.webp" className={styles.illustration} alt={daylight ? "" : "새벽 3시, 마케터가 책상에서 보고서를 쓰고 있습니다."} fill loading="eager" sizes="(max-width: 600px) 112vw, 100vw" />
         <Image src="/project-media/amazon-scene-hands.webp" alt="" className={styles.hands} width={460} height={251} unoptimized />
         <Image src="/project-media/amazon-scene-morning.webp" className={`${styles.illustration} ${styles.morning}`} alt={daylight ? "아침 8시, 마케터가 커피를 마십니다." : ""} fill loading="eager" sizes="(max-width: 600px) 112vw, 100vw" />
         <div className={styles.steam} aria-hidden="true"><span /><span /></div>
-        <div ref={screen} className={styles.screen} tabIndex={-1}>
-          {busy ? <div className={styles.flow}>
+        <div ref={screen} className={styles.screen} tabIndex={-1} inert={scene === "later"}>
+          {scene === "night" ? <>
+            <div className={styles.screenHeading}>주간 광고 보고서</div>
+            <ManualDraft playing={!paused && !reduced} />
+          </> : busy ? <div className={styles.flow}>
             <div className={styles.screenHeading}>보고서 생성 흐름</div>
             <ol className={styles.nodes} aria-label="에이전트 아키텍처">
-              {architecture.map(([name, label], index) => <li key={name} data-state={stageStates[phase][index]}>
+              {architecture.map(([name, label], index) => <li key={name} aria-label={`${label} · ${name}`} data-state={stageStates[phase][index]}>
                 <strong>{label}</strong><small>{name.replaceAll("_", "_\u200B")}</small>
               </li>)}
             </ol>
@@ -168,18 +224,15 @@ export default function ReportRoom() {
               {phase === "fixing" && <div className={styles.feedback}><span>↶</span> 원본 불일치 · AI에 교정 요청</div>}
               {activity[phase]}
             </div>
-          </div> : <>
+          </div> : done ? <WeeklyReport report={report} onRun={run} /> : <div className={styles.start}>
             <div className={styles.screenHeading}>주간 광고 보고서</div>
-            {morning ? <div className={styles.result}>
-              <p>광고비 <strong>$1,200</strong><br />매출 <strong>$3,200</strong> · ROAS <strong>2.67</strong></p>
-              <p className={styles.resultDetail}>브랜드 검색 캠페인 매출 $1,680 · 최종 검수 통과</p>
-            </div> : <ManualDraft playing={!paused && !reduced} />}
-            <button ref={action} type="button" className={styles.run} onClick={run}>{morning ? "보고서 만들기" : "에이전트에게 맡기기"}</button>
-          </>}
+            {scene === "day" && <button type="button" className={styles.run} onClick={run}>에이전트로 만들기</button>}
+          </div>}
         </div>
       </div>
+      {scene === "later" && <span className={styles.timeCard} aria-hidden="true">며칠 뒤</span>}
     </section>
-    <p className={styles.srOnly} role="status">{phase === "checking" ? "원본과 숫자·캠페인명 대조 중" : activity[phase]}</p>
+    <p className={styles.srOnly} role="status">{scene === "later" ? "며칠 뒤" : phase === "checking" ? "원본과 숫자·캠페인명 대조 중" : activity[phase]}</p>
 
     <details className={styles.details}>
       <summary>원본 데이터와 검증 과정 자세히 보기</summary>
@@ -196,7 +249,7 @@ export default function ReportRoom() {
               <tbody>
                 {rows.map((row) => <tr key={row.name}>
                   <th scope="row" data-hit={focus === row.name}>{row.name}</th>
-                  {[`$${row.spend.toLocaleString("en-US")}`, `$${row.sales.toLocaleString("en-US")}`, roas(row.spend, row.sales)].map((cell) =>
+                    {[currency(row.spend), currency(row.sales), roas(row.spend, row.sales)].map((cell) =>
                     <td key={cell} data-hit={focus === cell}>{cell}</td>)}
                 </tr>)}
               </tbody>
