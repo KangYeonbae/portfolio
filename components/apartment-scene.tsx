@@ -15,6 +15,7 @@ type RoomProps = {
   images: string[];
   onOpen: (index: number) => void;
   onReady: () => void;
+  paused?: boolean;
 };
 
 type Point = [number, number, number];
@@ -147,7 +148,10 @@ function RoomAssets(props: RoomProps) {
     return { loader, transcoder };
   }, [renderer]);
 
-  useEffect(() => () => { transcoder.dispose(); }, [transcoder]);
+  useEffect(() => () => {
+    useLoader.clear(loader, roomModel);
+    transcoder.dispose();
+  }, [loader, transcoder]);
 
   return <Suspense fallback={null}><Room loader={loader} {...props} /></Suspense>;
 }
@@ -155,7 +159,8 @@ function RoomAssets(props: RoomProps) {
 export default function ApartmentScene(props: RoomProps) {
   return (
     <Canvas camera={{ position: stops[0].camera, fov: 51, near: .055, far: 25 }}
-      gl={{ antialias: true, toneMapping: NeutralToneMapping }} shadows="percentage" dpr={[1, 1.5]} fallback={null}>
+      gl={{ antialias: true, toneMapping: NeutralToneMapping }} shadows="percentage"
+      frameloop={props.paused ? "never" : "always"} dpr={[1, 1.5]} fallback={null}>
       <RoomAssets {...props} />
     </Canvas>
   );

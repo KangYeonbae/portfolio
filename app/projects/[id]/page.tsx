@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ArchitectureDiagram } from "@/components/architecture-diagram";
 import { ArrowRight, ArrowUpRight } from "@/components/icons";
+import { ProjectVideo } from "@/components/project-video";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { categoryLabels, projects as staticProjects } from "@/data/projects";
@@ -105,7 +106,7 @@ export default async function ProjectDetailPage({ params }: Props) {
           </div>
 
           {project.video ? <figure className={styles.productMedia}>
-            <video controls playsInline preload="metadata" poster={project.videoPoster ?? project.image}><source src={project.video} type="video/mp4" />브라우저가 영상을 지원하지 않습니다.</video>
+            <ProjectVideo src={project.video} poster={project.videoPoster ?? project.image} />
             <figcaption><span>제품 실행 화면</span>{project.videoCaption}</figcaption>
           </figure> : project.image ? <figure className={`${styles.productMedia} ${project.imageAspect === "portrait" ? styles.portrait : ""}`}>
             <div className={styles.imageFrame}><Image src={project.image} alt={`${project.title} 대표 제품 화면`} fill priority sizes="(max-width: 760px) 92vw, 860px" className={project.imageFit === "contain" ? styles.contain : undefined} /></div>

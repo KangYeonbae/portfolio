@@ -10,6 +10,12 @@ const contacts = [
   { id: "seoyun", name: "서윤", tone: "mint", time: "오후 3:12", message: "내일도 같이 가자 ☀" },
   { id: "minji", name: "민지", tone: "lavender", time: "오후 2:46", message: "스티커 너무 귀엽다 ㅋㅋ" },
 ] as const;
+const stickers = [
+  { symbol: "♥", label: "하트" },
+  { symbol: "☺", label: "웃음" },
+  { symbol: "✦", label: "응원" },
+] as const;
+type Message = { text: string; sticker?: (typeof stickers)[number]["symbol"] };
 
 export function DubbyRoom() {
   const [sceneReady, setSceneReady] = useState(false);
@@ -17,7 +23,7 @@ export function DubbyRoom() {
   const [screen, setScreen] = useState<"chat" | "friends">("friends");
   const [contact, setContact] = useState<(typeof contacts)[number] | null>(null);
   const [draft, setDraft] = useState("");
-  const [messages, setMessages] = useState<Partial<Record<(typeof contacts)[number]["id"], string[]>>>({});
+  const [messages, setMessages] = useState<Partial<Record<(typeof contacts)[number]["id"], Message[]>>>({});
   const conversation = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,9 +36,14 @@ export function DubbyRoom() {
     return () => window.clearTimeout(timer);
   }, [sceneReady]);
 
+  function send(message: Message) {
+    if (!contact) return;
+    setMessages((previous) => ({ ...previous, [contact.id]: [...(previous[contact.id] ?? []), message] }));
+  }
+
   return (
     <div className={styles.dubbyRoom} data-app={showApp}>
-      <div className={styles.dubbyScene} aria-hidden={showApp}>
+      {!showApp && <div className={styles.dubbyScene}>
         <Image
           className={styles.dubbyIllustration}
           src="/project-media/dubby-lounge.webp"
@@ -43,9 +54,10 @@ export function DubbyRoom() {
           onLoad={() => setSceneReady(true)}
           onError={() => setShowApp(true)}
         />
-      </div>
+      </div>}
       <header className={styles.dubbyToolbar}>
         <form method="dialog"><button type="submit" autoFocus>← 전시관으로 돌아가기</button></form>
+        {!showApp && <button type="button" onClick={() => setShowApp(true)}>메신저 바로 체험 ↗</button>}
       </header>
       <div className={styles.dubbyRoomContent}>
         <div className={styles.dubbyRoomCopy}>
@@ -53,7 +65,7 @@ export function DubbyRoom() {
           {showApp && (
             <>
               <p>친구와 톡하고, 스티커로 마음을 전하는 소셜 메신저.</p>
-              <Link className={styles.dubbyDetail} href="/projects/dubby">프로젝트 자세히 보기 ↗</Link>
+              <Link className={styles.dubbyDetail} href="/projects/dubby" prefetch={false}>프로젝트 자세히 보기 ↗</Link>
             </>
           )}
         </div>
@@ -78,13 +90,23 @@ export function DubbyRoom() {
                     <div ref={conversation} className={styles.dubbyConversation} role="log" aria-label={`${contact.name}와의 예시 대화`}>
                       <small>오늘</small>
                       <p>{contact.message}</p>
-                      {messages[contact.id]?.map((message, index) => <p key={index} data-outgoing="true">{message}</p>)}
+                      {messages[contact.id]?.map((message, index) => (
+                        <p key={index} data-outgoing="true" data-sticker={!!message.sticker}
+                          aria-label={message.sticker ? `${message.text} 스티커` : undefined}>
+                          {message.sticker ?? message.text}
+                        </p>
+                      ))}
+                    </div>
+                    <div className={styles.dubbyStickers} role="group" aria-label="보낼 스티커 선택">
+                      {stickers.map((sticker) => <button key={sticker.label} type="button"
+                        aria-label={`${sticker.label} 스티커 보내기`}
+                        onClick={() => send({ text: sticker.label, sticker: sticker.symbol })}>{sticker.symbol}</button>)}
                     </div>
                     <form className={styles.dubbyComposer} onSubmit={(event) => {
                       event.preventDefault();
                       const message = draft.trim();
                       if (!message) return;
-                      setMessages((previous) => ({ ...previous, [contact.id]: [...(previous[contact.id] ?? []), message] }));
+                      send({ text: message });
                       setDraft("");
                     }}>
                       <input aria-label="예시 메시지" placeholder="메시지 입력" value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={180} />
@@ -101,7 +123,7 @@ export function DubbyRoom() {
                             <span className={styles.dubbyContactAvatar} data-tone={person.tone} aria-hidden="true">{person.name[0]}</span>
                             <span className={styles.dubbyContactCopy}>
                               <strong>{person.name}</strong>
-                              {screen === "chat" && <small>{messages[person.id]?.at(-1) ?? person.message}</small>}
+                              {screen === "chat" && <small>{messages[person.id]?.at(-1)?.text ?? person.message}</small>}
                             </span>
                             <span className={styles.dubbyContactAction}>{screen === "chat" ? person.time : "톡하기"}</span>
                           </button>

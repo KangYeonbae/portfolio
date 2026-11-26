@@ -1,12 +1,10 @@
 "use client";
 
-import { Component, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { Component, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { projects } from "@/data/projects";
-import { DubbyRoom } from "./dubby-room";
-import { ByeoljariRoom } from "./byeoljari-room";
 import { galleryImages } from "./gallery-layout";
 import { MuseumViewer } from "./museum-viewer";
 import styles from "./experience.module.css";
@@ -14,9 +12,19 @@ import styles from "./experience.module.css";
 const Scene = dynamic(() => import("./experience-scene"), { ssr: false });
 const RoomScene = dynamic(() => import("./apartment-scene"), { ssr: false });
 const ModernScene = dynamic(() => import("./modern-gallery-scene"), { ssr: false });
+const DubbyRoom = dynamic(() => import("./dubby-room").then((module) => module.DubbyRoom), { loading: RoomLoading });
+const ByeoljariRoom = dynamic(() => import("./byeoljari-room").then((module) => module.ByeoljariRoom), { loading: RoomLoading });
+const ProjectRoom = dynamic(() => import("./project-room"), { loading: RoomLoading });
 const museumPage = "https://hallwylskamuseet.se/en/visit-us/visit-at-your-own-pace/the-great-drawing-room/";
 const modernGallerySource = "https://sketchfab.com/3d-models/art-gallery-720b507d814740278c713d100def4c99";
 const walkerSource = "https://sketchfab.com/3d-models/nathan-animated-003-walking-3d-man-143a2b1ea5eb4385ae90a73657aca3bc";
+
+function RoomLoading() {
+  return <div className={styles.roomContent}>
+    <form method="dialog"><button type="submit" autoFocus>← 전시관으로 돌아가기</button></form>
+    <p id="project-preview-title" role="status">전시실을 여는 중입니다.</p>
+  </div>;
+}
 
 class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
@@ -91,6 +99,7 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
   const [modernExhibit, setModernExhibit] = useState(0);
   const [exhibitRequest, setExhibitRequest] = useState<{ index: number } | null>(null);
   const [museumViewerOpen, setMuseumViewerOpen] = useState(false);
+  const [galleryVisible, setGalleryVisible] = useState(true);
   const stage = useRef<HTMLDivElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const marker = useRef<HTMLButtonElement>(null);
@@ -105,6 +114,30 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
   const room = rooms[preview.id];
   const onSceneReady = useCallback(() => setSceneReady(true), []);
   const ActiveScene = scene === "room" ? RoomScene : Scene;
+  const scenePaused = roomOpen || !galleryVisible;
+
+  useLayoutEffect(() => {
+    const element = dialog.current;
+    if (roomOpen && element && !element.open) element.showModal();
+  }, [roomOpen]);
+
+  useEffect(() => {
+    const element = viewport.current;
+    if (!element) return;
+    let inView = true;
+    const update = () => setGalleryVisible(inView && document.visibilityState === "visible");
+    const observer = new IntersectionObserver(([entry]) => {
+      inView = entry.isIntersecting;
+      update();
+    });
+    observer.observe(element);
+    document.addEventListener("visibilitychange", update);
+    update();
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", update);
+    };
+  }, []);
 
   useEffect(() => {
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -178,7 +211,6 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
     marker.current?.focus({ preventScroll: true });
     setSelected(index);
     setRoomOpen(true);
-    dialog.current?.showModal();
   }
 
   return <main className={styles.exploration}>
@@ -210,8 +242,8 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
               <SceneBoundary>
                 {modern ? <ModernScene images={modernGalleryImages}
                   onOpen={openPreview} onReady={onSceneReady} exhibitRequest={exhibitRequest}
-                  paused={roomOpen} onExhibit={setModernExhibit} startIndex={modernExhibit} />
-                  : <ActiveScene progress={progress} images={galleryImages} onOpen={openPreview} onReady={onSceneReady} />}
+                  paused={scenePaused} onExhibit={setModernExhibit} startIndex={modernExhibit} />
+                  : <ActiveScene progress={progress} images={galleryImages} onOpen={openPreview} onReady={onSceneReady} paused={scenePaused} />}
               </SceneBoundary>
             )}
           </div>
@@ -247,8 +279,14 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
         </nav>
       </div>
     </div>
-    <dialog ref={dialog} className={styles.galleryDialog} data-room={room.theme} aria-labelledby="project-preview-title" onClose={() => setRoomOpen(false)}>
-      {preview.id === "dubby" && roomOpen ? <DubbyRoom /> : preview.id === "byeoljari" && roomOpen ? <ByeoljariRoom /> : <>
+    <dialog ref={dialog} className={styles.galleryDialog} data-room={roomOpen ? room.theme : undefined}
+      aria-labelledby={roomOpen ? "project-preview-title" : undefined} onClose={() => {
+        setRoomOpen(false);
+        marker.current?.focus({ preventScroll: true });
+      }}>
+      {roomOpen && (preview.id === "dubby" ? <DubbyRoom /> : preview.id === "byeoljari" ? <ByeoljariRoom />
+        : modern ? <ProjectRoom key={preview.id} id={preview.id} name={preview.name} text={preview.text} media={preview.media}
+          report={preview.id === "amazon-ads-agent" ? <ReportDemo /> : undefined} /> : <>
       <div className={styles.roomAtmosphere} aria-hidden="true" />
       <div className={styles.roomContent}>
         <form method="dialog"><button type="submit" autoFocus>← 전시관으로 돌아가기</button></form>
@@ -258,10 +296,10 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
             <h1 id="project-preview-title">{preview.name}</h1>
             <p>{preview.text}</p>
             <div className={styles.roomActions}>
-              <Link className={styles.textLink} href={`/projects/${preview.id}`}>프로젝트 자세히 보기 <span aria-hidden="true">↗</span></Link>
+              <Link className={styles.textLink} href={`/projects/${preview.id}`} prefetch={false}>프로젝트 자세히 보기 <span aria-hidden="true">↗</span></Link>
               {"action" in room && (
                 <a className={styles.textLink} href="#report-experiment"
-                  onClick={modern ? undefined : () => dialog.current?.close()}>
+                  onClick={() => dialog.current?.close()}>
                   {room.action} <span aria-hidden="true">↓</span>
                 </a>
               )}
@@ -271,11 +309,8 @@ export function ProjectExploration({ scene = "gallery" }: { scene?: "gallery" | 
             <Image src={preview.media} alt={`${preview.name} 제품 화면`} width={960} height={540} sizes="(max-width: 800px) 86vw, 52vw" />
           </figure>
         </div>
-        {modern && roomOpen && "action" in room && (
-          <div id="report-experiment" className={styles.reportExperiment}><ReportDemo /></div>
-        )}
       </div>
-      </>}
+      </>)}
     </dialog>
     {modern && <footer className={styles.galleryCredits}>
       <a href={modernGallerySource} target="_blank" rel="noreferrer">Art Gallery · Zeps3D · CC BY 4.0 · 수정하여 사용</a>

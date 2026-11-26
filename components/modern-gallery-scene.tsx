@@ -1,21 +1,15 @@
 "use client";
 
-import { Canvas, useFrame, useLoader, useThree, type ThreeEvent } from "@react-three/fiber";
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import {
-  CanvasTexture, EquirectangularReflectionMapping, ExtrudeGeometry, MathUtils, Mesh, NeutralToneMapping,
-  Object3D, Path, ShaderMaterial, Shape, SRGBColorSpace, TextureLoader, Vector2,
+  CanvasTexture, ExtrudeGeometry, MathUtils, Mesh, NeutralToneMapping,
+  Object3D, Path, ShaderMaterial, Shape, SRGBColorSpace, Vector2,
   type Group, type MeshStandardMaterial, type PointLight, type Texture, type Vector3,
 } from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { HDRLoader } from "three/examples/jsm/loaders/HDRLoader.js";
-
-import { GalleryWalker, walkerUrl } from "./gallery-walker";
+import { GalleryWalker } from "./gallery-walker";
 import { isGalleryFloor } from "./gallery-navigation";
-
-const modelUrl = "/project-media/modern-gallery.glb";
-const daylightUrl = "/project-media/gallery-daylight-1k.hdr";
-const galleryModels = [modelUrl, walkerUrl];
+import { loadGalleryAssets, type GalleryAssets } from "./modern-gallery-assets";
 
 type Point = [number, number, number];
 type View = { eye: Point; target: Point };
@@ -130,7 +124,7 @@ function ProjectArtwork({ index, texture, label, actor, paused, onOpen }: {
   const lamp = useRef<PointLight>(null);
   const emphasis = useRef(0);
 
-  useFrame((_, delta) => {
+  useFrame(({ invalidate }, delta) => {
     if (!trim.current || !lamp.current) return;
     const position = actor.current?.position;
     let nearby = 0;
@@ -145,6 +139,7 @@ function ProjectArtwork({ index, texture, label, actor, paused, onOpen }: {
     emphasis.current = MathUtils.damp(emphasis.current, target, 10, delta);
     trim.current.emissiveIntensity = emphasis.current * .82;
     lamp.current.intensity = 2.4 + emphasis.current * 3.6;
+    if (Math.abs(emphasis.current - target) > .01) invalidate();
   });
 
   useEffect(() => () => {
@@ -219,29 +214,20 @@ function ProjectArtwork({ index, texture, label, actor, paused, onOpen }: {
   );
 }
 
-function Gallery({ images, onOpen, onReady, ...navigation }: SceneProps) {
-  const [{ scene }, walker] = useLoader(GLTFLoader, galleryModels);
+function Gallery({ assets, images, onOpen, onReady, ...navigation }: SceneProps & { assets: GalleryAssets }) {
+  const { building: { scene }, walker, daylight, artworks: textures } = assets;
   const [destination, setDestination] = useState<Vector3 | null>(null);
   const actor = useRef<Group>(null);
   const onActor = useCallback((group: Group | null) => {
     actor.current = group;
   }, []);
-  const daylight = useLoader(HDRLoader, daylightUrl);
-  const sourceTextures = useLoader(TextureLoader, images);
-  const textures = useMemo(() => sourceTextures.map((source) => {
-    const texture = source.clone();
-    texture.colorSpace = SRGBColorSpace;
-    return texture;
-  }), [sourceTextures]);
   const invalidate = useThree((state) => state.invalidate);
   const canvas = useThree((state) => state.gl.domElement);
   const label = useMemo(() => createArtworkLabel(), []);
   const sunTarget = useMemo(() => new Object3D(), []);
 
-  const { building, sky, environment, glassGeometries } = useMemo(() => {
+  const { building, sky, glassGeometries } = useMemo(() => {
     const building = scene.clone();
-    const environment = daylight.clone();
-    environment.mapping = EquirectangularReflectionMapping;
     const sky = new ShaderMaterial({
       uniforms: { daylight: { value: daylight } },
       vertexShader: `
@@ -288,23 +274,26 @@ function Gallery({ images, onOpen, onReady, ...navigation }: SceneProps) {
       mesh.add(new Mesh(paneGeometry, sky));
       glassGeometries.push(geometry, paneGeometry);
     }
-    return { building, sky, environment, glassGeometries };
+    return { building, sky, glassGeometries };
   }, [scene, daylight]);
 
   useEffect(() => () => {
     sky.dispose();
-    environment.dispose();
     glassGeometries.forEach((geometry) => geometry.dispose());
-  }, [sky, environment, glassGeometries]);
+  }, [sky, glassGeometries]);
 
   useEffect(() => {
     invalidate();
     onReady();
   }, [invalidate, onReady]);
 
-  useEffect(() => () => {
-    textures.forEach((texture) => texture.dispose());
-  }, [textures]);
+  useEffect(() => {
+    if (navigation.paused) return;
+    invalidate();
+    // Nathan's idle pose continues at a reduced rate when there is no input.
+    const idle = window.setInterval(invalidate, 66);
+    return () => window.clearInterval(idle);
+  }, [invalidate, navigation.paused]);
   useEffect(() => () => label.dispose(), [label]);
   useEffect(() => {
     if (navigation.paused) canvas.removeAttribute("data-gallery-cursor");
@@ -313,7 +302,7 @@ function Gallery({ images, onOpen, onReady, ...navigation }: SceneProps) {
   return (
     <>
       <color attach="background" args={["#e7eef1"]} />
-      <primitive object={environment} attach="environment" />
+      <primitive object={daylight} attach="environment" />
       <hemisphereLight args={["#fffaf2", "#f1e3d1", 1.62]} />
       <ambientLight intensity={.28} />
       <directionalLight position={[13, 10, -4]} color="#fff5e7" intensity={.68} />
@@ -350,17 +339,31 @@ function Gallery({ images, onOpen, onReady, ...navigation }: SceneProps) {
 
 export default function ModernGalleryScene(props: SceneProps) {
   const { images } = props;
+  const [loaded, setLoaded] = useState<{ images: string[]; assets: GalleryAssets } | null>(null);
   useEffect(() => {
-    useLoader.preload(HDRLoader, daylightUrl);
-    useLoader.preload(TextureLoader, images);
+    let active = true;
+    let loading: ReturnType<typeof loadGalleryAssets> | undefined;
+    const start = window.setTimeout(() => {
+      loading = loadGalleryAssets(images);
+      void loading.ready.then((assets) => {
+        if (active) setLoaded({ images, assets });
+      }).catch(() => loading?.dispose());
+    }, 0);
+    return () => {
+      active = false;
+      window.clearTimeout(start);
+      loading?.dispose();
+    };
   }, [images]);
+
+  if (!loaded || loaded.images !== images) return null;
 
   return (
     <Canvas camera={{ position: entrance.eye, fov: 57, near: .08, far: 80 }} shadows="percentage"
       scene={{ environmentIntensity: .5 }}
       gl={{ antialias: true, toneMapping: NeutralToneMapping, toneMappingExposure: 1.22 }}
-      dpr={[1, 1.5]} fallback={null}>
-      <Suspense fallback={null}><Gallery {...props} /></Suspense>
+      frameloop={props.paused ? "never" : "demand"} dpr={[1, 1.5]} fallback={null}>
+      <Gallery assets={loaded.assets} {...props} />
     </Canvas>
   );
 }

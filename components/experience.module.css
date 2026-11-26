@@ -410,7 +410,6 @@
   background: radial-gradient(ellipse at 75% 45%, #ffc9ad, transparent 58%), #fff4eb;
 }
 .dubbyScene { position: absolute; inset: 0; z-index: -1; overflow: hidden; }
-.dubbyRoom[data-app="true"] .dubbyScene { opacity: 0; }
 .galleryDialog .dubbyIllustration { height: 100%; max-height: none; object-fit: cover; object-position: center 49%; }
 .dubbyScene::after { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, #28202495, transparent 38%); }
 .dubbyToolbar {
@@ -487,6 +486,22 @@
 .dubbyConversation small { align-self: center; color: #72594d; }
 .dubbyConversation p { align-self: start; margin: 0; max-width: 88%; padding: .45rem .6rem; border-radius: .85rem .85rem .85rem .22rem; background: #f1e8e1; color: #49322a; font-size: .8rem; overflow-wrap: anywhere; }
 .dubbyConversation p[data-outgoing] { align-self: end; border-radius: .85rem .85rem .22rem .85rem; background: #ffddc7; }
+.dubbyConversation p[data-sticker="true"] {
+  padding: .15rem .58rem;
+  background: #ffece0;
+  color: #a83b5c;
+  font-size: 2rem;
+  line-height: 1.2;
+}
+.dubbyStickers { display: flex; gap: .38rem; padding: .25rem .55rem .4rem; }
+.galleryDialog .dubbyStickers button {
+  background: #fce8e1;
+  border: 1px solid #dfb5a5;
+  border-radius: .7rem;
+  color: #8b3a50;
+  font-size: 1.15rem;
+}
+.galleryDialog .dubbyStickers button:hover { background: #8b3a50; color: #fff8f3; }
 .galleryDialog .dubbyComposer { display: flex; align-items: center; margin: 0; gap: .3rem; padding: .35rem .55rem .55rem; border-top: 1px solid #f0e1d7; }
 .dubbyComposer input { flex: 1; min-width: 0; min-height: 44px; padding: .35rem .55rem; border: 1px solid #d4b9aa; border-radius: .7rem; background: #fff; color: #402c29; }
 .dubbyComposer button { font-size: .75rem; font-weight: 700; }
@@ -499,7 +514,6 @@
 .dubbyWave { left: 89%; bottom: 43%; width: 39%; height: 38%; border-right: 3px solid; border-bottom: 3px solid; border-radius: 0 0 55% 0; transform: rotate(-15deg); transform-origin: left bottom; }
 .dubbyWave span { position: absolute; top: -.6rem; right: -.43rem; width: .75rem; height: .95rem; border: 2px solid #553832; border-radius: 52% 52% 45% 40%; background: #ffe5d3; }
 .dubbyLegs { left: 24%; bottom: -29%; width: 51%; height: 39%; border-inline: 3px solid; transform: perspective(40px) rotateX(-13deg); }
-.reportExperiment { grid-column: 1 / -1; width: 100%; }
 @media (max-width: 800px) {
   .roomLayout { grid-template-columns: 1fr; align-content: start; padding-top: 1.5rem; }
   .roomDisplay img { max-height: 40svh; }
@@ -514,7 +528,6 @@
   .galleryDialog[open] .roomLayout { animation: room-arrive .45s cubic-bezier(.2,.72,.24,1) both; }
   .readingReveal { animation: room-arrive .24s ease-out both; }
   .galleryDialog[open] .dubbyIllustration { animation: dubby-scene-drift 4.5s ease-out both; }
-  .dubbyScene { transition: opacity .56s ease; }
   .dubbyPhone { animation: dubby-phone-arrive .6s cubic-bezier(.2,.72,.24,1) both; }
   .dubbyMascot { animation: dubby-greet .6s .2s ease-out both; }
   .dubbyWave { animation: dubby-wave .52s .42s ease-in-out 4; }

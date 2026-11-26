@@ -23,9 +23,52 @@
 .room button:hover, .room button[aria-pressed="true"] { background: #ffffff1c; border-color: #f2cc92a6; }
 .skipHint { position: absolute; left: 50%; bottom: 2.2rem; transform: translateX(-50%); margin: 0; color: #c9cde4; font-size: .78rem; letter-spacing: .08em; }
 .layout { min-height: 77svh; display: grid; grid-template-areas: "stage"; place-items: center; padding: 1rem 0 2.5rem; }
+.layout[data-celestial-menu="true"] { place-items: end center; padding-bottom: clamp(2rem, 7svh, 5rem); }
+.layout[data-celestial-menu="true"] .instruments { grid-template-columns: minmax(0, 10rem); justify-content: center; }
+.constellationControls { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
+.room .constellationControls button {
+  position: absolute;
+  left: var(--sky-x);
+  top: var(--sky-y);
+  transform: translateX(-50%);
+  display: grid;
+  justify-items: center;
+  align-content: end;
+  width: max(4.15rem, var(--sky-width, 0px));
+  height: max(3.7rem, var(--sky-height, 0px));
+  padding: 0 .3rem .2rem;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--sky-accent, #fff1cc);
+  text-shadow: 0 0 .6rem #060819;
+  box-shadow: none;
+  pointer-events: auto;
+  font-size: clamp(.76rem, 1.2vw, .94rem);
+  font-weight: 650;
+}
+/* Byeoljari service art glows faintly behind each constellation, brighter when it can be clicked */
+.room .constellationControls button::before {
+  content: "";
+  position: absolute;
+  inset: -12%;
+  z-index: -1;
+  background: var(--sky-art) center / cover no-repeat;
+  border-radius: 50%;
+  mask-image: radial-gradient(closest-side, #000 35%, transparent);
+  opacity: .14;
+  transition: opacity .3s;
+}
+.room .constellationControls button:hover::before, .room .constellationControls button:focus-visible::before { opacity: .42; }
+@media (prefers-reduced-motion: reduce) { .room .constellationControls button::before { transition: none; } }
+.constellationControls[data-ready="false"], .constellationControls button:not([data-visible="true"]) { visibility: hidden; }
+.room .constellationControls button:hover, .room .constellationControls button:focus-visible {
+  background: #111a3980;
+  border-color: var(--sky-accent, #fff1cc);
+  box-shadow: 0 0 1.4rem color-mix(in srgb, var(--sky-accent) 30%, transparent);
+}
 .intro > p { margin: 0; color: var(--gold); font: 600 .78rem/1 ui-monospace, monospace; letter-spacing: .32em; text-transform: uppercase; }
 .intro h1 { margin: 1rem 0 2rem; font-size: clamp(2.6rem, 5.6vw, 5rem); font-weight: 700; line-height: 1.07; letter-spacing: -.06em; text-shadow: 0 0 2.5rem #8ea2ff40; }
-.instruments { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(.35rem, 1.6vw, 1rem); max-width: 25rem; }
+.instruments { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(.35rem, 1.6vw, 1rem); max-width: 34rem; }
 .instruments button, .instruments button:hover, .instruments button[aria-pressed="true"] {
   display: grid;
   justify-items: center;
@@ -64,6 +107,12 @@
 .workbench { text-align: center; padding: clamp(1rem, 4vw, 2.4rem); border: 1px solid #ffffff1f; border-radius: 1.5rem; background: linear-gradient(160deg, #ffffff14, #ffffff05 60%), #0a10248c; backdrop-filter: blur(16px); box-shadow: 0 1.75rem 5rem #0306128a; }
 .workbench h2 { margin: 0 0 1.3rem; font-size: clamp(1.45rem, 3vw, 2.2rem); letter-spacing: -.035em; }
 .workbench .sample { margin: .8rem 0 0; color: #d0bacb; font-size: .76rem; }
+.skyWorkbench { width: min(100%, 32rem); align-self: end; }
+.skyDirections { display: flex; flex-wrap: wrap; gap: .45rem; justify-content: center; }
+.skyDirections button { padding: .55rem .8rem; }
+@media (max-width: 520px) {
+  .instruments { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 .pillars { display: grid; gap: clamp(.24rem, 1.5vw, .65rem); }
 .pillars { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .pillars button { padding: .6rem .1rem; display: grid; justify-items: center; gap: .45rem; }

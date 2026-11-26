@@ -1,8 +1,9 @@
 "use client";
 
-import { Canvas, useFrame } from "@react-three/fiber";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { AdditiveBlending, BackSide, CanvasTexture, MathUtils, PerspectiveCamera, Vector3, type Group, type ShaderMaterial } from "three";
+import { constellations, type ConstellationButtons } from "./observatory-constellations";
 
 type Catalog = {
   stars: [number, number, number, number][];
@@ -43,6 +44,17 @@ function direction(ra: number, dec: number, distance: number) {
 
 const latitude = 37.5; // Seoul: Polaris sits this high above the northern rim
 const introSeconds = 6.5;
+const azimuths = { north: 0, east: 90, south: 180, west: 270 } as const;
+export type SkyDirection = keyof typeof azimuths;
+
+type SkyProps = {
+  onIntroEnd: () => void;
+  direction: SkyDirection;
+  skipIntro: boolean;
+  showConstellations: boolean;
+  buttons: RefObject<ConstellationButtons>;
+  onConstellationsReady: () => void;
+};
 
 // Faint alt-azimuth grid painted on the dome; it stays put while the sky turns.
 function domeGrid() {
@@ -74,15 +86,118 @@ function coveGlow() {
   return new CanvasTexture(canvas);
 }
 
-function Sky({ catalog, onIntroEnd }: { catalog: Catalog; onIntroEnd: () => void }) {
+function skyPoint(azimuth: number, altitude: number) {
+  const az = MathUtils.degToRad(azimuth);
+  const alt = MathUtils.degToRad(altitude);
+  return new Vector3(Math.cos(alt) * Math.sin(az), Math.sin(alt), -Math.cos(alt) * Math.cos(az)).multiplyScalar(33);
+}
+
+function constellationGlow() {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 32;
+  const context = canvas.getContext("2d");
+  if (context) {
+    const gradient = context.createRadialGradient(16, 16, 0, 16, 16, 16);
+    gradient.addColorStop(0, "#fff");
+    gradient.addColorStop(.28, "#ffffffe6");
+    gradient.addColorStop(1, "#ffffff00");
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, 32, 32);
+  }
+  return new CanvasTexture(canvas);
+}
+
+function ConstellationMap({ buttons, onReady }: {
+  buttons: RefObject<ConstellationButtons>;
+  onReady: () => void;
+}) {
+  const projected = useRef(new Vector3());
+  const announced = useRef(false);
+  const spread = useThree(({ size }) => MathUtils.clamp(size.width / Math.max(size.height, 1) / .69, .48, 1));
+  const glow = useMemo(() => constellationGlow(), []);
+  const maps = useMemo(() => constellations.map(({ stars, lines, azimuth, altitude, ...style }) => {
+    // Azimuth degrees narrow by cos(altitude) up the dome; widen offsets so shapes keep their proportions.
+    const widen = 1 / Math.cos(MathUtils.degToRad(altitude));
+    const nodes = stars.map(([az, alt]) => skyPoint((azimuth + az * widen) * spread, altitude + alt));
+    const points = nodes.map((node) => node.toArray());
+    return {
+      ...style,
+      nodes,
+      anchor: skyPoint(azimuth * spread, altitude),
+      positions: new Float32Array(points.flat()),
+      edges: new Float32Array(lines.flatMap(([from, to]) => [...points[from], ...points[to]])),
+    };
+  }), [spread]);
+  useEffect(() => () => glow.dispose(), [glow]);
+
+  useFrame(({ camera, size }) => {
+    camera.updateMatrixWorld();
+    let visible = 0;
+    for (const { id, anchor, nodes } of maps) {
+      const button = buttons.current[id];
+      if (!button) continue;
+      const point = projected.current.copy(anchor).project(camera);
+      if (point.z < -1 || point.z > 1 || Math.abs(point.x) > .93 || Math.abs(point.y) > .91) {
+        button.setAttribute("data-visible", "false");
+        continue;
+      }
+      let left = size.width;
+      let right = 0;
+      let top = size.height;
+      let bottom = 0;
+      for (const node of nodes) {
+        const star = projected.current.copy(node).project(camera);
+        const x = (star.x + 1) * size.width / 2;
+        const y = (1 - star.y) * size.height / 2;
+        left = Math.min(left, x);
+        right = Math.max(right, x);
+        top = Math.min(top, y);
+        bottom = Math.max(bottom, y);
+      }
+      button.style.setProperty("--sky-x", `${(left + right) / 2}px`);
+      button.style.setProperty("--sky-y", `${Math.max(0, top - 9)}px`);
+      button.style.setProperty("--sky-width", `${right - left + 20}px`);
+      button.style.setProperty("--sky-height", `${bottom - top + 34}px`);
+      button.setAttribute("data-visible", "true");
+      visible++;
+    }
+    if (!announced.current && visible === maps.length) {
+      announced.current = true;
+      onReady();
+    }
+  });
+
+  return maps.map(({ id, color, positions, edges }) => <group key={id}>
+    <lineSegments>
+      <bufferGeometry><bufferAttribute attach="attributes-position" args={[edges, 3]} /></bufferGeometry>
+      <lineBasicMaterial color={color} transparent opacity={.76} depthWrite={false} />
+    </lineSegments>
+    <points>
+      <bufferGeometry><bufferAttribute attach="attributes-position" args={[positions, 3]} /></bufferGeometry>
+      <pointsMaterial map={glow} color={color} size={.75} transparent depthWrite={false} blending={AdditiveBlending} />
+    </points>
+  </group>);
+}
+
+function Sky({
+  catalog, onIntroEnd, direction: facing, skipIntro, showConstellations, buttons, onConstellationsReady,
+}: SkyProps & { catalog: Catalog }) {
   const start = useRef<number | null>(null);
+  const view = useRef({ azimuth: 0, altitude: MathUtils.degToRad(20) });
   const motion = useRef<MediaQueryList | null>(null);
   const pointsMaterial = useRef<ShaderMaterial>(null);
   const spin = useRef<Group>(null);
   const introDone = useRef(false);
+  const invalidate = useThree((state) => state.invalidate);
   const grid = useMemo(() => domeGrid(), []);
   const glow = useMemo(() => coveGlow(), []);
   useEffect(() => () => glow.dispose(), [glow]);
+  useEffect(() => {
+    const idle = window.setInterval(() => {
+      if (introDone.current && !motion.current?.matches && document.visibilityState === "visible") invalidate();
+    }, 100);
+    return () => window.clearInterval(idle);
+  }, [invalidate]);
   const { coordinates, brightness, temperature, lines, uniforms } = useMemo(() => {
     const coordinates = new Float32Array(catalog.stars.length * 3);
     const brightness = new Float32Array(catalog.stars.length);
@@ -106,10 +221,22 @@ function Sky({ catalog, onIntroEnd }: { catalog: Catalog; onIntroEnd: () => void
     const time = clock.elapsedTime;
     start.current ??= time;
     // Opening: one full sweep around the dome rim while the gaze lifts, ending facing north.
-    const progress = reduced ? 1 : Math.min(1, (time - start.current) / introSeconds);
-    const eased = progress < .5 ? 4 * progress ** 3 : 1 - (-2 * progress + 2) ** 3 / 2;
-    const az = MathUtils.degToRad(360 * (1 - eased));
-    const alt = MathUtils.degToRad(20 + 10 * eased);
+    const progress = reduced || skipIntro ? 1 : Math.min(1, (time - start.current) / introSeconds);
+    const cameraView = view.current;
+    let turning = false;
+    if (progress < 1) {
+      const eased = progress < .5 ? 4 * progress ** 3 : 1 - (-2 * progress + 2) ** 3 / 2;
+      cameraView.azimuth = MathUtils.degToRad(360 * (1 - eased));
+      cameraView.altitude = MathUtils.degToRad(20 + 10 * eased);
+    } else {
+      const target = MathUtils.degToRad(azimuths[facing]);
+      const offset = MathUtils.euclideanModulo(target - cameraView.azimuth + Math.PI, 2 * Math.PI) - Math.PI;
+      const altitude = MathUtils.degToRad(30);
+      turning = !reduced && (Math.abs(offset) > .002 || Math.abs(cameraView.altitude - altitude) > .002);
+      cameraView.azimuth = turning ? cameraView.azimuth + offset * (1 - Math.exp(-5 * Math.min(delta, .05))) : target;
+      cameraView.altitude = turning ? MathUtils.damp(cameraView.altitude, altitude, 5, Math.min(delta, .05)) : altitude;
+    }
+    const { azimuth: az, altitude: alt } = cameraView;
     camera.lookAt(Math.cos(alt) * Math.sin(az), Math.sin(alt), -Math.cos(alt) * Math.cos(az));
     if (camera instanceof PerspectiveCamera && camera.fov !== 72) {
       camera.fov = 72;
@@ -121,7 +248,7 @@ function Sky({ catalog, onIntroEnd }: { catalog: Catalog; onIntroEnd: () => void
     }
     if (spin.current && !reduced) spin.current.rotation.y += MathUtils.degToRad(.6) * Math.min(delta, .1);
     if (pointsMaterial.current) pointsMaterial.current.uniforms.pixelRatio.value = gl.getPixelRatio();
-    if (!reduced) invalidate();
+    if (!reduced && (!introDone.current || turning)) invalidate();
   });
 
   return <>
@@ -152,10 +279,12 @@ function Sky({ catalog, onIntroEnd }: { catalog: Catalog; onIntroEnd: () => void
       <lineBasicMaterial color="#9ab6ec" transparent opacity={.28} depthWrite={false} />
     </lineSegments>
     </group></group>
+    {showConstellations && <ConstellationMap buttons={buttons} onReady={onConstellationsReady} />}
   </>;
 }
 
-export default function ObservatorySky({ onIntroEnd }: { onIntroEnd: () => void }) {
+export default function ObservatorySky(props: SkyProps) {
+  const { onIntroEnd } = props;
   const [catalog, setCatalog] = useState<Catalog | null>(null);
 
   useEffect(() => {
@@ -175,7 +304,7 @@ export default function ObservatorySky({ onIntroEnd }: { onIntroEnd: () => void 
   return (
     <Canvas camera={{ position: [0, 0, 0], near: .1, far: 85, fov: 72 }}
       frameloop="demand" dpr={[1, 1.5]} gl={{ alpha: true, antialias: true }} fallback={null}>
-      <Sky catalog={catalog} onIntroEnd={onIntroEnd} />
+      <Sky catalog={catalog} {...props} />
     </Canvas>
   );
 }

@@ -14,6 +14,7 @@ type GalleryProps = {
   images: string[];
   onOpen: (index: number) => void;
   onReady: () => void;
+  paused?: boolean;
 };
 
 const bays = Array.from({ length: 15 }, (_, index) => -index * 4 - 1);
@@ -236,6 +237,7 @@ export default function Scene(props: GalleryProps) {
       scene={{ environmentIntensity: .75 }}
       gl={{ antialias: true, powerPreference: "low-power", toneMapping: NeutralToneMapping }}
       dpr={[1, 1.5]}
+      frameloop={props.paused ? "never" : "always"}
       fallback={null}
     >
       <Suspense fallback={null}><Gallery {...props} /></Suspense>

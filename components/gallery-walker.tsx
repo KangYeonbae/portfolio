@@ -4,14 +4,13 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   AnimationClip, AnimationMixer, CanvasTexture, Group, MathUtils,
-  PerspectiveCamera, Quaternion, QuaternionKeyframeTrack,
+  PerspectiveCamera, Quaternion, QuaternionKeyframeTrack, SkinnedMesh,
   Vector3, VectorKeyframeTrack, type Object3D,
 } from "three";
 import type { GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { clone } from "three/addons/utils/SkeletonUtils.js";
 import { createGalleryNavigation } from "./gallery-navigation";
 
-export const walkerUrl = "/project-media/gallery-nathan.glb";
 type Point = [number, number, number];
 type View = { eye: Point; target: Point };
 
@@ -90,6 +89,7 @@ export function GalleryWalker({ stops, entrance, onActor, building, model, start
   const { scene, animations } = model;
   const { width, height } = useThree((state) => state.size);
   const canvas = useThree((state) => state.gl.domElement);
+  const invalidate = useThree((state) => state.invalidate);
   const aspect = width / Math.max(height, 1);
   const portraitFov = MathUtils.radToDeg(2 * Math.atan(Math.tan(MathUtils.degToRad(24)) / Math.max(aspect, .01)));
   const baseFov = Math.min(94, Math.max(57, portraitFov));
@@ -122,8 +122,14 @@ export function GalleryWalker({ stops, entrance, onActor, building, model, start
 
   useEffect(() => {
     animation.idle.play();
-    return () => { animation.mixer.stopAllAction(); };
-  }, [animation]);
+    return () => {
+      animation.mixer.stopAllAction();
+      animation.mixer.uncacheRoot(avatar);
+      avatar.traverse((object) => {
+        if (object instanceof SkinnedMesh) object.skeleton.dispose();
+      });
+    };
+  }, [animation, avatar]);
   useEffect(() => () => contactShadow.dispose(), [contactShadow]);
   useEffect(() => {
     const held = pressed.current;
@@ -143,6 +149,7 @@ export function GalleryWalker({ stops, entrance, onActor, building, model, start
       if (!canvas.isConnected || visible < bounds.height * .75 || bounds.height === 0) return;
       event.preventDefault();
       held.add(code);
+      invalidate();
     }
 
     function keyUp(event: KeyboardEvent) {
@@ -160,7 +167,7 @@ export function GalleryWalker({ stops, entrance, onActor, building, model, start
       document.removeEventListener("visibilitychange", clear);
       clear();
     };
-  }, [canvas, paused]);
+  }, [canvas, invalidate, paused]);
 
   useEffect(() => {
     if (paused) return;
@@ -172,6 +179,7 @@ export function GalleryWalker({ stops, entrance, onActor, building, model, start
         : event.deltaMode === 2 ? event.deltaY * canvas.clientHeight : event.deltaY;
       const input = cameraInput.current;
       input.zoom = MathUtils.clamp(input.zoom + pixels * .004, 2.25, 6.5);
+      invalidate();
     }
     function pointerDown(event: PointerEvent) {
       if (event.button !== 2) return;
@@ -186,6 +194,7 @@ export function GalleryWalker({ stops, entrance, onActor, building, model, start
       input.pitch = MathUtils.clamp(input.pitch + (event.clientY - pointer.y) * .005, -.23, .56);
       pointer.x = event.clientX;
       pointer.y = event.clientY;
+      invalidate();
     }
     function endDrag(event?: PointerEvent) {
       if (!pointer || (event && pointer.id !== event.pointerId)) return;
@@ -212,7 +221,7 @@ export function GalleryWalker({ stops, entrance, onActor, building, model, start
       canvas.removeEventListener("lostpointercapture", endDrag);
       canvas.removeEventListener("contextmenu", hideMenu);
     };
-  }, [canvas, paused]);
+  }, [canvas, invalidate, paused]);
 
   useFrame(({ camera }, elapsed) => {
     if (!actor.current || paused) return;
@@ -365,6 +374,11 @@ export function GalleryWalker({ stops, entrance, onActor, building, model, start
     camera.lookAt(aim);
     actor.current.visible = safeDistance > .53;
     current.initialized = true;
+    if (pressed.current.size || current.path.length || Math.abs(current.zoom - input.zoom) > .003 ||
+      Math.abs(current.orbitPitch - input.pitch) > .003 || Math.abs(current.cameraFloor - position.y) > .003 ||
+      Math.abs(current.cameraArm - targetArm) > .003 ||
+      1 - Math.cos(current.cameraHeading - viewHeading) > .0001 ||
+      1 - Math.cos(current.orbitYaw - input.yaw) > .0001) invalidate();
   });
 
   return <>
