@@ -132,15 +132,134 @@
 .facts dt { color: var(--secondary); font-size: .74rem; }
 .facts dd { margin: 0; font-weight: 700; }
 
+.toolbarActions { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .9rem; }
+.stage { outline: none; }
+.room .reply {
+  min-height: 44px;
+  margin-top: 1.2rem;
+  padding: .6rem 1.1rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--base);
+  font-weight: 750;
+}
+.room .reply:hover { filter: brightness(1.08); }
+
+/* Stage 1: two friends at a cafe. Image is 1600x900; the laptop screen is x600 y423 w401 h259. */
+.cafe {
+  position: relative;
+  width: min(92%, 82rem, calc(78svh * 16 / 9));
+  aspect-ratio: 16 / 9;
+  margin: clamp(1rem, 3vw, 2rem) auto 1.6rem;
+  overflow: hidden;
+  border-radius: .6rem;
+  box-shadow: 0 1.2rem 3rem #0007;
+}
+.cafeCamera { position: absolute; inset: 0; transform-origin: 50.05% 61.4%; transition: transform .9s cubic-bezier(.6, 0, .3, 1); }
+/* The gallery dialog caps every img at 42svh; the scene must fill its frame */
+.room .cafeCamera img { max-height: none; object-fit: cover; }
+/* Zoom until the laptop screen fills the frame, then the editor stage takes over */
+.cafe[data-zooming="true"] .cafeCamera { transform: scale(3.6); }
+.cafe[data-zooming="true"] .talk { opacity: 0; transition: opacity .3s; }
+/* Speech sits in the gap between the two heads, above the laptop */
+.talk { position: absolute; left: 37.5%; top: 3%; width: 25%; display: grid; gap: .5rem; }
+.bubbles { display: grid; gap: .45rem; margin: 0; padding: 0; list-style: none; }
+.bubbles li { animation: rise .45s ease-out; }
+.room .bubbles p { margin: 0; padding: .55rem .8rem; border-radius: 1rem 1rem .3rem 1rem; background: #fffdf6f2; color: var(--paper-ink); font-size: clamp(.78rem, 1.05vw, .95rem); line-height: 1.5; box-shadow: 0 .3rem 1rem #0003; }
+.talk .reply { justify-self: start; margin-top: .2rem; border-radius: 1rem 1rem 1rem .3rem; }
+/* Narrow or short screens: the talk moves under the picture so the reply never gets clipped */
+@media (max-width: 880px), (max-height: 560px) {
+  .cafe { overflow: visible; aspect-ratio: auto; box-shadow: none; }
+  .cafeCamera { position: relative; aspect-ratio: 16 / 9; border-radius: .6rem; overflow: hidden; }
+  .talk { position: static; width: auto; margin-top: .9rem; }
+  .cafe[data-zooming="true"] .cafeCamera { transform: none; }
+}
+
+/* Stage 2: a word-processor window */
+.editorStage {
+  width: min(92%, 82rem);
+  margin-inline: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(1.2rem, 4vw, 3rem);
+  padding-block: clamp(1.4rem, 4vw, 2.8rem) 1.6rem;
+}
+.hwp { border: 1px solid #b9c3d1; border-radius: .4rem; overflow: hidden; background: #e9edf2; color: #1f2937; box-shadow: 0 1.2rem 3rem #0006; }
+.hwpTitle { display: flex; justify-content: space-between; padding: .45rem .8rem; background: #2f5d9e; color: #fff; font-size: .8rem; }
+.hwpMenu { display: flex; flex-wrap: wrap; gap: .2rem 1rem; padding: .35rem .8rem; border-bottom: 1px solid #c8d0db; font-size: .78rem; }
+.hwpBox { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; padding: .5rem .8rem; border-bottom: 1px solid #c8d0db; background: #f6f8fb; font-size: .85rem; }
+.hwpBox input { width: 4.2rem; min-height: 36px; padding: .2rem .4rem; border: 1px solid #94a3b8; border-radius: .25rem; font-size: 1rem; font-variant-numeric: tabular-nums; }
+.room .hwpBox button { min-height: 36px; padding: .2rem .8rem; border: 1px solid #2f5d9e; border-radius: .25rem; background: #2f5d9e; color: #fff; }
+.room .hwpBox button:disabled { opacity: .45; }
+.hwpPage { width: min(100% - 2rem, 30rem); margin: 1rem auto; padding: 1.2rem 1.4rem; background: #fff; box-shadow: 0 .2rem .6rem #0002; }
+.room .hwpPage > p { margin: 0 0 .5rem; color: #1f2937; }
+.hwpPage svg { display: block; width: 100%; max-width: 19rem; margin: 0 auto; }
+.hwpPage svg line { stroke: #1f2937; stroke-width: 1.6; stroke-linecap: round; }
+.hwpPage svg path { fill: none; stroke: #1f2937; stroke-width: 1.2; }
+.hwpPage svg text { font-size: 15px; text-anchor: middle; dominant-baseline: central; fill: #1f2937; }
+.hwpPage svg text[data-edited] { fill: #2f5d9e; font-weight: 700; }
+.hwpChoices { display: flex; flex-wrap: wrap; gap: .3rem 1.2rem; margin: .6rem 0; padding: 0; list-style: none; }
+.room .hwpNote { margin: 0; color: #4b5563; font-size: .85rem; }
+.hwpPage [data-bad] { outline: 2px dashed #dc2626; outline-offset: 3px; border-radius: .2rem; animation: warn .6s ease-out; }
+.task { padding: clamp(1rem, 2.4vw, 1.6rem); border: 1px solid var(--edge); border-radius: .6rem; background: #2a251d; }
+.task h2 { margin: 0 0 .7rem; font-size: 1.2rem; }
+.room .task p { margin: .6rem 0 0; color: var(--secondary); line-height: 1.6; }
+.task b { color: var(--accent); }
+.task ul { display: grid; gap: .45rem; margin: 0; padding: 0; list-style: none; }
+.task li { padding-left: 1.4rem; text-indent: -1.4rem; line-height: 1.5; }
+.task li::before { content: "✗ "; color: #f87171; font-weight: 800; }
+
+/* Stage 3: five variant sheets scattered on the desk, all fully visible */
+.fan { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1rem .8rem; align-content: start; }
+.room .fan button {
+  grid-column: span 2;
+  display: grid;
+  gap: .3rem;
+  padding: .8rem;
+  border: 1px solid #e9e2cf;
+  border-radius: .25rem;
+  background: var(--paper);
+  color: var(--paper-ink);
+  text-align: left;
+  box-shadow: 0 .8rem 2rem #0008;
+  transform: rotate(calc(var(--i) * 1.4deg));
+  transition: transform .25s ease;
+  animation: deal .5s ease-out backwards;
+  animation-delay: calc((var(--i) + 2) * 70ms);
+}
+/* Second row of two sits centered under the three */
+.room .fan button:nth-child(4) { grid-column: 2 / span 2; }
+.room .fan button:hover, .room .fan button:focus-visible { transform: translateY(-.4rem) rotate(0deg); }
+.fan span { font-size: .78rem; font-weight: 700; }
+.fan small { color: var(--mark); font-weight: 700; }
+.fan svg { width: 100%; }
+.fan svg line { stroke: var(--paper-ink); stroke-width: 1.8; stroke-linecap: round; }
+.fan svg path { fill: none; stroke: var(--paper-ink); stroke-width: 1.4; }
+.fan svg path[data-answer] { stroke: var(--mark); }
+.fan svg text { font-size: 17px; text-anchor: middle; dominant-baseline: central; fill: var(--paper-ink); }
+.fan svg text[data-answer] { fill: var(--mark); }
+
+@keyframes rise { from { opacity: 0; transform: translateY(.6rem); } }
+@keyframes warn { from { outline-color: transparent; } }
+@keyframes deal { from { opacity: 0; transform: translateY(2rem) rotate(0deg); } }
 @keyframes chalk { from { opacity: .2; color: var(--accent); } }
 @keyframes ink { from { opacity: .35; } }
 @media (max-width: 880px) {
   .body { grid-template-columns: 1fr; }
   .paper { width: min(100%, 34rem); transform: none; }
+  .editorStage { grid-template-columns: 1fr; }
+  .task { order: -1; }
+  /* Phones: variants become a swipeable row instead of a fan */
+  .fan { display: flex; gap: .8rem; overflow-x: auto; padding-bottom: .6rem; scroll-snap-type: x mandatory; }
+  .room .fan button, .room .fan button:hover, .room .fan button:focus-visible { flex: none; width: 13rem; transform: none; scroll-snap-align: start; }
 }
 @media (max-width: 420px) {
   .choices { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .outputs li, .question { animation: none; }
+  .outputs li, .question, .bubbles li, .hwpPage [data-bad], .room .fan button { animation: none; }
+  .room .fan button, .cafeCamera { transition: none; }
 }
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
